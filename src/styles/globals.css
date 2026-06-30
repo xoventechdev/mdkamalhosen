@@ -1,0 +1,312 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 255 255 255;
+    --foreground: 11 26 58;
+    --card: 255 255 255;
+    --card-foreground: 11 26 58;
+    --muted: 248 250 252;
+    --muted-foreground: 100 116 139;
+    --border: 226 232 240;
+    --input: 226 232 240;
+    --ring: 37 99 235;
+    --accent: 37 99 235;
+    --accent-foreground: 255 255 255;
+    --accent-soft: 37 99 235;
+
+    /* Category hues — vivid but coherent. */
+    --cat-bms: 6 182 212;        /* cyan-500 — building automation */
+    --cat-software: 139 92 246;  /* violet-500 — software */
+    --cat-iot: 16 185 129;       /* emerald-500 — IoT */
+    --cat-android: 245 158 11;  /* amber-500 — android */
+
+    --code-bg: 248 250 252;
+    --code-fg: 11 26 58;
+
+    /* Gradient-mesh stops — used for the v2 page background. */
+    --violet: 139 92 246;
+    --violet-soft: 167 139 250;
+  }
+
+  .dark {
+    --background: 6 11 26;
+    --foreground: 226 232 240;
+    --card: 11 26 58;
+    --card-foreground: 248 250 252;
+    --muted: 15 37 82;
+    --muted-foreground: 148 163 184;
+    --border: 30 41 59;
+    --input: 30 41 59;
+    --ring: 59 130 246;
+    --accent: 59 130 246;
+    --accent-foreground: 255 255 255;
+    --accent-soft: 96 165 250;
+
+    --cat-bms: 34 211 238;
+    --cat-software: 167 139 250;
+    --cat-iot: 52 211 153;
+    --cat-android: 251 191 36;
+
+    --code-bg: 11 26 58;
+    --code-fg: 226 232 240;
+
+    --violet: 167 139 250;
+    --violet-soft: 196 181 253;
+  }
+
+  * { @apply border-border; }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  ::selection { @apply bg-accent/25 text-foreground; }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--border));
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--muted-foreground));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+    .marquee-track { animation: none !important; transform: none !important; }
+    .gradient-mesh { animation: none !important; }
+  }
+}
+
+@layer components {
+  .container-prose { @apply mx-auto max-w-prose px-6; }
+
+  /* ----- Glass surfaces (Design System v2) ----- */
+  .glass-card {
+    @apply rounded-2xl border bg-white/[0.65] backdrop-blur-xl shadow-card border-white/40;
+  }
+  .dark .glass-card {
+    @apply bg-white/[0.04] border-white/10;
+  }
+
+  .glass-chip {
+    @apply rounded-full border bg-white/[0.55] backdrop-blur-md border-white/40;
+  }
+  .dark .glass-chip {
+    @apply bg-white/[0.04] border-white/10;
+  }
+
+  .glass-header {
+    @apply sticky top-0 z-40 w-full border-b bg-white/70 backdrop-blur-xl border-white/40;
+  }
+  .dark .glass-header {
+    @apply bg-white/[0.04] border-white/10;
+  }
+
+  .glass-side {
+    @apply rounded-2xl border bg-white/[0.55] backdrop-blur-xl border-white/30;
+  }
+  .dark .glass-side {
+    @apply bg-white/[0.03] border-white/[0.08];
+  }
+
+  /* ----- Gradient mesh page background (v2). Fixed to viewport. ----- */
+  .gradient-mesh {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% -10%, rgb(var(--accent) / 0.20), transparent 70%),
+      radial-gradient(ellipse 60% 50% at 85% 10%, rgb(var(--violet) / 0.14), transparent 70%),
+      radial-gradient(ellipse 50% 40% at 10% 20%, rgb(var(--cat-iot) / 0.10), transparent 70%);
+  }
+  .dark .gradient-mesh {
+    background:
+      radial-gradient(ellipse 70% 50% at 50% -10%, rgb(var(--accent) / 0.30), transparent 70%),
+      radial-gradient(ellipse 60% 50% at 85% 10%, rgb(var(--violet) / 0.18), transparent 70%),
+      radial-gradient(ellipse 50% 40% at 10% 20%, rgb(var(--cat-iot) / 0.14), transparent 70%);
+  }
+
+  /* Section-level gradient — used for hero bands, big CTAs. */
+  .section-gradient {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgb(var(--accent) / 0.18), transparent 70%),
+      radial-gradient(ellipse 60% 50% at 85% 20%, rgb(var(--violet) / 0.10), transparent 60%),
+      radial-gradient(ellipse 50% 50% at 10% 30%, rgb(var(--cat-software) / 0.10), transparent 60%);
+  }
+  .dark .section-gradient {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgb(var(--accent) / 0.25), transparent 70%),
+      radial-gradient(ellipse 60% 50% at 85% 20%, rgb(var(--violet) / 0.14), transparent 60%),
+      radial-gradient(ellipse 50% 50% at 10% 30%, rgb(var(--cat-software) / 0.12), transparent 60%);
+  }
+
+  /* Original hero-gradient kept for backwards compatibility on smaller bands. */
+  .hero-gradient {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgb(var(--accent) / 0.18), transparent 70%),
+      radial-gradient(ellipse 60% 50% at 85% 20%, rgb(var(--cat-iot) / 0.12), transparent 60%),
+      radial-gradient(ellipse 50% 50% at 10% 30%, rgb(var(--cat-software) / 0.10), transparent 60%);
+  }
+  .dark .hero-gradient {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgb(var(--accent) / 0.25), transparent 70%),
+      radial-gradient(ellipse 60% 50% at 85% 20%, rgb(var(--cat-iot) / 0.15), transparent 60%),
+      radial-gradient(ellipse 50% 50% at 10% 30%, rgb(var(--cat-software) / 0.12), transparent 60%);
+  }
+
+  /* Animated underline for links */
+  .link-underline {
+    @apply relative inline-block;
+  }
+  .link-underline::after {
+    content: "";
+    @apply absolute -bottom-0.5 left-0 h-px w-0 bg-accent transition-all duration-300;
+  }
+  .link-underline:hover::after { @apply w-full; }
+
+  /* Accent gradient text — only used on hero headlines. */
+  .text-gradient {
+    @apply bg-gradient-to-br from-accent via-[rgb(var(--cat-software))] to-[rgb(var(--violet))] bg-clip-text text-transparent;
+  }
+
+  /* Category-tinted text. Use sparingly for tags + section eyebrows. */
+  .text-violet { color: rgb(var(--violet)); }
+  .text-violet-soft { color: rgb(var(--violet-soft)); }
+
+  /* Shimmer placeholder for skeleton loads. */
+  .shimmer {
+    @apply relative overflow-hidden bg-muted;
+  }
+  .shimmer::after {
+    @apply absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/10 to-transparent;
+    content: "";
+  }
+  .dark .shimmer::after {
+    @apply via-white/[0.04];
+  }
+
+  /* Cover gradient placeholders (used on cards when no image). */
+  .cover-gradient-bms {
+    background: radial-gradient(120% 80% at 50% 0%, rgb(var(--cat-bms) / 0.35), transparent 60%),
+                linear-gradient(135deg, rgb(var(--cat-bms) / 0.20), rgb(var(--accent) / 0.20));
+  }
+  .cover-gradient-software {
+    background: radial-gradient(120% 80% at 50% 0%, rgb(var(--cat-software) / 0.35), transparent 60%),
+                linear-gradient(135deg, rgb(var(--cat-software) / 0.20), rgb(var(--violet) / 0.18));
+  }
+  .cover-gradient-iot {
+    background: radial-gradient(120% 80% at 50% 0%, rgb(var(--cat-iot) / 0.35), transparent 60%),
+                linear-gradient(135deg, rgb(var(--cat-iot) / 0.20), rgb(var(--cat-bms) / 0.20));
+  }
+  .cover-gradient-android {
+    background: radial-gradient(120% 80% at 50% 0%, rgb(var(--cat-android) / 0.35), transparent 60%),
+                linear-gradient(135deg, rgb(var(--cat-android) / 0.20), rgb(var(--cat-software) / 0.18));
+  }
+  .cover-gradient-blog {
+    background: radial-gradient(120% 80% at 50% 0%, rgb(var(--accent) / 0.30), transparent 60%),
+                linear-gradient(135deg, rgb(var(--accent) / 0.18), rgb(var(--cat-iot) / 0.16));
+  }
+
+  /* Prose (blog post body). */
+  .prose { @apply max-w-prose text-base leading-7 text-foreground; }
+  .prose h1 { @apply mt-8 mb-4 text-4xl font-semibold tracking-tight; }
+  .prose h2 { @apply mt-10 mb-3 text-2xl font-semibold tracking-tight; }
+  .prose h3 { @apply mt-8 mb-2 text-xl font-semibold tracking-tight; }
+  .prose p { @apply mb-5; }
+  .prose a {
+    color: rgb(var(--accent));
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .prose a:hover { color: rgb(var(--accent) / 0.8); }
+  .prose strong {
+    font-weight: 600;
+    color: rgb(var(--foreground));
+  }
+  .prose ul { @apply mb-5 list-disc space-y-1 pl-6; }
+  .prose ol { @apply mb-5 list-decimal space-y-1 pl-6; }
+  .prose blockquote {
+    margin: 1.5rem 0;
+    border-left: 4px solid rgb(var(--accent));
+    padding-left: 1rem;
+    font-style: italic;
+    color: rgb(var(--muted-foreground));
+  }
+  .prose code { @apply rounded bg-muted px-1.5 py-0.5 font-mono text-sm; }
+  .prose pre { @apply overflow-x-auto rounded-lg bg-[rgb(var(--code-bg))] p-4 font-mono text-sm leading-6; }
+  .prose pre code { @apply bg-transparent p-0; }
+  .prose img { @apply rounded-lg border border-border; }
+  .prose hr { @apply my-8 border-border; }
+  .prose table { @apply mb-5 w-full border-collapse text-sm; }
+  .prose th { @apply border border-border bg-muted px-3 py-2 text-left font-semibold; }
+  .prose td { @apply border border-border px-3 py-2; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
+  .mask-fade-b { mask-image: linear-gradient(to bottom, black 70%, transparent); }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Vertical marquee track — used on home proof bar. */
+  .marquee-track {
+    animation: marquee 28s linear infinite;
+  }
+  @keyframes marquee {
+    0%   { transform: translateX(0%); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* Glow halo for category-tinted surfaces. */
+  .halo-violet {
+    box-shadow: 0 0 36px -8px rgb(var(--violet) / 0.32);
+  }
+  .halo-accent {
+    box-shadow: 0 0 36px -8px rgb(var(--accent) / 0.32);
+  }
+}
+
+@media print {
+  .gradient-mesh,
+  .marquee-track,
+  .glass-card,
+  .glass-chip,
+  .glass-header,
+  .glass-side,
+  .section-gradient,
+  .hero-gradient {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    border-color: rgb(0 0 0 / 0.2) !important;
+    animation: none !important;
+  }
+  body { background: white !important; color: black !important; }
+  header, footer, nav, [data-reading-progress] { display: none !important; }
+  a { text-decoration: underline; color: black !important; }
+}

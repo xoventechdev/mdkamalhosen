@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"H:\\\\Personal\\\\Job\\\\Me\\\\portfolio\\\\src\\\\app\\\\\\(site\\)\")",
+      "Bash(npm run:*)",
+      "WebSearch",
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "Bash(node:*)",
+      "Bash(/tmp/dollar2.js:*)"
+    ]
+  }
+}
