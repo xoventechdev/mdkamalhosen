@@ -2,6 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Prisma ships native query-engine binaries and performs environment
+  // checks (including a "built on Vercel" check that throws if the
+  // generated client is stale). Bundling it through webpack breaks
+  // both, so we mark it as a server-external package. In Next.js 15
+  // this option was promoted out of `experimental` and must live at
+  // the top level of NextConfig.
+  serverExternalPackages: ["@prisma/client"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "*.supabase.co" },
