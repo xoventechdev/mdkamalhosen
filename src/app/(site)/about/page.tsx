@@ -84,32 +84,6 @@ const timeline = [
   },
 ];
 
-const values = [
-  "Commission with proof",
-  "Document before deploying",
-  "Automate repetitive engineering",
-  "Anonymise confidential data",
-  "Bridge IT and OT",
-];
-
-const missionFallback =
-  "To become an internationally recognised Building Automation Engineer while combining software engineering and AI to build smarter buildings.";
-
-const storyFallback = [
-  "I started as a BMS technician in Doha, installing sensors and actuators on live sites, then moved into operating central BMS platforms where HVAC, lighting, and energy management systems converged. The work taught me what a controller actually does at 2am when an alarm trips.",
-  "Promoted into testing & commissioning, I programmed Honeywell control logic and integrated third-party equipment across BACnet, Modbus, and M-Bus. Writing commissioning reports every week pushed me toward software — I wanted tools that took the repetitive parts off my plate.",
-  "Today I lead BMS commissioning at King Abdullah Financial District (KAFD) in Riyadh while continuing to ship software on the side. The next chapter is international smart-building consultancy — combining Niagara 4 field work with cloud BMS, digital twins, and AI-assisted commissioning.",
-];
-
-async function loadProfile() {
-  try {
-    return await getProfile();
-  } catch (e) {
-    console.error("[about] loadProfile failed:", e);
-    return null;
-  }
-}
-
 const spySections = [
   { id: "story", label: "Story", href: "#story" },
   { id: "journey", label: "Journey", href: "#journey" },
@@ -118,10 +92,19 @@ const spySections = [
 ];
 
 export default async function AboutPage() {
-  const profile = await loadProfile();
-  const displayValues = profile?.values?.length ? profile.values : values;
-  const mission = profile?.mission ?? missionFallback;
-  const story = profile?.summary ? paragraphs(profile.summary) : storyFallback;
+  const profile = await getProfile();
+
+  if (!profile) {
+    return (
+      <main className="container py-20 text-center">
+        <p className="text-sm text-muted-foreground">Profile not yet created.</p>
+      </main>
+    );
+  }
+
+  const displayValues = profile.values ?? [];
+  const mission = profile.mission ?? "";
+  const story = profile.summary ? paragraphs(profile.summary) : [];
 
   return (
     <>

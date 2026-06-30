@@ -155,7 +155,14 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  console.log("[layout][loadSiteJsonLd] start");
+  const layoutT0 = Date.now();
   const jsonLd = await loadSiteJsonLd();
+  const layoutMs = Date.now() - layoutT0;
+  console.log(`[layout][loadSiteJsonLd] end ${layoutMs}ms`);
+  if (layoutMs > 1000) {
+    console.warn(`[layout][loadSiteJsonLd] SLOW ${layoutMs}ms`);
+  }
 
   return (
     <html

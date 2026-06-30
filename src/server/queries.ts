@@ -7,121 +7,173 @@ import { prisma } from "@/lib/prisma";
 // After an admin save we call revalidateTag() with the matching tag.
 // ---------------------------------------------------------------------------
 
+/**
+ * Wraps a Prisma call with timing logs. Visible in Vercel runtime logs so we
+ * can identify which query is the bottleneck on cold starts. The wrapper
+ * itself is non-caching — caching is handled by `unstable_cache` further out.
+ */
+async function timed<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  const start = Date.now();
+  console.log(`[queries][${label}] start`);
+  try {
+    const result = await fn();
+    const ms = Date.now() - start;
+    console.log(`[queries][${label}] end ${ms}ms`);
+    if (ms > 1000) {
+      console.warn(`[queries][${label}] SLOW ${ms}ms`);
+    }
+    return result;
+  } catch (err) {
+    const ms = Date.now() - start;
+    console.error(`[queries][${label}] error after ${ms}ms`, err);
+    throw err;
+  }
+}
+
 export const getProfile = unstable_cache(
-  async () => prisma.profile.findUnique({ where: { id: 1 } }),
+  async () =>
+    timed("getProfile", () =>
+      prisma.profile.findUnique({ where: { id: 1 } }),
+    ),
   ["profile"],
   { tags: ["profile"], revalidate: 60 },
 );
 
 export const getAllExperiences = unstable_cache(
   async () =>
-    prisma.experience.findMany({
-      orderBy: [{ sortOrder: "asc" }, { startDate: "desc" }],
-    }),
+    timed("getAllExperiences", () =>
+      prisma.experience.findMany({
+        orderBy: [{ sortOrder: "asc" }, { startDate: "desc" }],
+      }),
+    ),
   ["experiences"],
   { tags: ["experiences"], revalidate: 60 },
 );
 
 export const getAllEducation = unstable_cache(
-  async () => prisma.education.findMany({ orderBy: [{ sortOrder: "asc" }] }),
+  async () =>
+    timed("getAllEducation", () =>
+      prisma.education.findMany({ orderBy: [{ sortOrder: "asc" }] }),
+    ),
   ["education"],
   { tags: ["education"], revalidate: 60 },
 );
 
 export const getAllCertifications = unstable_cache(
   async () =>
-    prisma.certification.findMany({ orderBy: [{ sortOrder: "asc" }] }),
+    timed("getAllCertifications", () =>
+      prisma.certification.findMany({ orderBy: [{ sortOrder: "asc" }] }),
+    ),
   ["certifications"],
   { tags: ["certifications"], revalidate: 60 },
 );
 
 export const getSkillGroups = unstable_cache(
   async () =>
-    prisma.skillGroup.findMany({
-      include: { skills: { orderBy: [{ sortOrder: "asc" }] } },
-      orderBy: [{ sortOrder: "asc" }],
-    }),
+    timed("getSkillGroups", () =>
+      prisma.skillGroup.findMany({
+        include: { skills: { orderBy: [{ sortOrder: "asc" }] } },
+        orderBy: [{ sortOrder: "asc" }],
+      }),
+    ),
   ["skills"],
   { tags: ["skills"], revalidate: 60 },
 );
 
 export const getPublishedProjects = unstable_cache(
   async () =>
-    prisma.project.findMany({
-      where: { status: "published" },
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-    }),
+    timed("getPublishedProjects", () =>
+      prisma.project.findMany({
+        where: { status: "published" },
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+      }),
+    ),
   ["projects"],
   { tags: ["projects"], revalidate: 60 },
 );
 
 export const getFeaturedProjects = unstable_cache(
   async () =>
-    prisma.project.findMany({
-      where: { status: "published", featured: true },
-      orderBy: [{ sortOrder: "asc" }],
-      take: 3,
-    }),
+    timed("getFeaturedProjects", () =>
+      prisma.project.findMany({
+        where: { status: "published", featured: true },
+        orderBy: [{ sortOrder: "asc" }],
+        take: 3,
+      }),
+    ),
   ["projects-featured"],
   { tags: ["projects"], revalidate: 60 },
 );
 
 export const getProjectBySlug = unstable_cache(
   async (slug: string) =>
-    prisma.project.findUnique({ where: { slug } }),
+    timed("getProjectBySlug", () =>
+      prisma.project.findUnique({ where: { slug } }),
+    ),
   ["project-by-slug"],
   { tags: ["projects"], revalidate: 60 },
 );
 
 export const getPublishedPosts = unstable_cache(
   async () =>
-    prisma.blogPost.findMany({
-      where: { status: "published" },
-      include: { tags: true },
-      orderBy: [{ publishedAt: "desc" }],
-    }),
+    timed("getPublishedPosts", () =>
+      prisma.blogPost.findMany({
+        where: { status: "published" },
+        include: { tags: true },
+        orderBy: [{ publishedAt: "desc" }],
+      }),
+    ),
   ["posts"],
   { tags: ["blog"], revalidate: 60 },
 );
 
 export const getLatestPosts = unstable_cache(
   async (limit = 3) =>
-    prisma.blogPost.findMany({
-      where: { status: "published" },
-      include: { tags: true },
-      orderBy: [{ publishedAt: "desc" }],
-      take: limit,
-    }),
+    timed("getLatestPosts", () =>
+      prisma.blogPost.findMany({
+        where: { status: "published" },
+        include: { tags: true },
+        orderBy: [{ publishedAt: "desc" }],
+        take: limit,
+      }),
+    ),
   ["posts-latest"],
   { tags: ["blog"], revalidate: 60 },
 );
 
 export const getPostBySlug = unstable_cache(
   async (slug: string) =>
-    prisma.blogPost.findUnique({
-      where: { slug },
-      include: { tags: true },
-    }),
+    timed("getPostBySlug", () =>
+      prisma.blogPost.findUnique({
+        where: { slug },
+        include: { tags: true },
+      }),
+    ),
   ["post-by-slug"],
   { tags: ["blog"], revalidate: 60 },
 );
 
 export const getPostsByTag = unstable_cache(
   async (tagSlug: string) =>
-    prisma.blogPost.findMany({
-      where: {
-        status: "published",
-        tags: { some: { slug: tagSlug } },
-      },
-      include: { tags: true },
-      orderBy: [{ publishedAt: "desc" }],
-    }),
+    timed("getPostsByTag", () =>
+      prisma.blogPost.findMany({
+        where: {
+          status: "published",
+          tags: { some: { slug: tagSlug } },
+        },
+        include: { tags: true },
+        orderBy: [{ publishedAt: "desc" }],
+      }),
+    ),
   ["posts-by-tag"],
   { tags: ["blog"], revalidate: 60 },
 );
 
 export const getAllTags = unstable_cache(
-  async () => prisma.blogTag.findMany({ orderBy: [{ name: "asc" }] }),
+  async () =>
+    timed("getAllTags", () =>
+      prisma.blogTag.findMany({ orderBy: [{ name: "asc" }] }),
+    ),
   ["tags"],
   { tags: ["blog"], revalidate: 60 },
 );
