@@ -22,7 +22,7 @@ import { certificationSchema, type CertificationInput } from "@/lib/schemas";
 export interface CertificationFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initial?: Partial<CertificationInput> & { id?: number };
+  initial?: Partial<CertificationInput> & { id?: string };
 }
 
 export function CertificationFormDialog({

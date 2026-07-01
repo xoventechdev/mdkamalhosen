@@ -1,8 +1,22 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
-import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { Types } from "mongoose";
+import {
+  connect,
+  ProfileModel,
+  PROFILE_ID,
+  ExperienceModel,
+  EducationModel,
+  CertificationModel,
+  SkillGroupModel,
+  SkillModel,
+  ProjectModel,
+  BlogPostModel,
+  BlogTagModel,
+  MessageModel,
+  ActivityLogModel,
+} from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import {
   profileSchema,
@@ -23,6 +37,11 @@ import { slugify, readingMinutes } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Helpers
+// ---------------------------------------------------------------------------
+//
+// All primary keys are ObjectId strings (e.g. "507f1f77bcf86cd799439011").
+// The Profile singleton has a fixed id — see lib/db/models/profile.model.ts.
+// We re-export it here so internal references stay readable.
 // ---------------------------------------------------------------------------
 
 type EntityName =
@@ -77,29 +96,42 @@ async function revalidateEntity(name: EntityName) {
   }
 }
 
+/**
+ * Mongoose's duplicate-key error carries a different shape than Prisma's
+ * (code 11000, not P2002). Map it to the same human-friendly message the
+ * legacy UI expected.
+ */
+function isDuplicateKey(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as { code?: unknown }).code === 11000
+  );
+}
+
 async function logActivity(
   userEmail: string,
   action: "created" | "updated" | "deleted",
   entity: string,
-  entityId?: number,
+  entityId?: string,
   meta?: Record<string, unknown>,
 ) {
   try {
-    await prisma.activityLog.create({
-      data: {
-        userEmail,
-        action,
-        entity,
-        entityId,
-        meta: meta ? (meta as Prisma.InputJsonValue) : Prisma.JsonNull,
-      },
+    await connect();
+    await ActivityLogModel.create({
+      userEmail,
+      action,
+      entity,
+      entityId,
+      meta: meta ?? null,
     });
   } catch {
     // Activity log is best-effort; never block the primary action.
   }
 }
 
-function ok<T = void>(data?: T, id?: number): ActionResult<T> {
+function ok<T = void>(data?: T, id?: string): ActionResult<T> {
   return { ok: true, data: data as T, id };
 }
 
@@ -107,23 +139,14 @@ function fail(error: unknown): ActionResult<never> {
   let message: string;
   if (isZodError(error)) {
     message = formatZod(error);
+  } else if (isDuplicateKey(error)) {
+    message = "That value is already taken (duplicate slug or natural key).";
   } else if (error instanceof Error) {
-    message = humanizePrisma(error);
+    message = error.message || "Database error.";
   } else {
     message = "Unexpected error.";
   }
   return { ok: false, error: message };
-}
-
-function humanizePrisma(err: Error): string {
-  const code = (err as { code?: string }).code;
-  if (code === "P2002") {
-    return "That value is already taken (duplicate slug or natural key).";
-  }
-  if (code === "P2025") {
-    return "Record not found.";
-  }
-  return err.message || "Database error.";
 }
 
 function isZodError(e: unknown): e is { issues: Array<{ path: (string | number)[]; message: string }> } {
@@ -142,10 +165,18 @@ function formatZod(err: { issues: Array<{ path: (string | number)[]; message: st
   return path ? `${path}: ${first.message}` : first.message;
 }
 
+/**
+ * Coerce a parsed schema payload to its persisted shape. Currently used to
+ * convert YYYY-MM-DD strings into JS Dates and tagIds strings into ObjectIds.
+ */
+function toObjectIds(ids: string[]): Types.ObjectId[] {
+  return ids.map((id) => new Types.ObjectId(id));
+}
+
 // ---------------------------------------------------------------------------
 // Profile
 // ---------------------------------------------------------------------------
-export async function upsertProfile(raw: unknown): Promise<ActionResult<{ id: number }>> {
+export async function upsertProfile(raw: unknown): Promise<ActionResult<{ id: string }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -157,15 +188,17 @@ export async function upsertProfile(raw: unknown): Promise<ActionResult<{ id: nu
   if (!parsed.success) return fail(parsed.error);
 
   try {
+    await connect();
     const data = parsed.data;
-    const row = await prisma.profile.upsert({
-      where: { id: 1 },
-      create: { id: 1, ...data },
-      update: data,
-    });
+    const row = await ProfileModel.findByIdAndUpdate(
+      PROFILE_ID,
+      { $set: data },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    );
+    const id = row?._id.toString() ?? PROFILE_ID.toString();
     await revalidateEntity("profile");
-    await logActivity(email, "updated", "profile", row.id);
-    return ok({ id: row.id }, row.id);
+    await logActivity(email, "updated", "profile", id);
+    return ok({ id }, id);
   } catch (e) {
     return fail(e);
   }
@@ -177,20 +210,30 @@ export async function upsertProfile(raw: unknown): Promise<ActionResult<{ id: nu
 async function bumpSortOrder(
   entity: "experience" | "education" | "certification" | "project",
 ): Promise<number> {
-  let max: { sortOrder: number } | null = null;
+  await connect();
+  // Use the $max approach: each collection carries a sortOrder. We find the
+  // current top so a new row can land at max+1. Each Model's document type
+  // differs, so we cast to a uniform `{ sortOrder: number } | null` shape.
+  const filter = {} as Record<string, unknown>;
+  const sort = { sortOrder: -1 } as const;
+  let top: { sortOrder: number } | null = null;
   if (entity === "experience") {
-    max = await prisma.experience.findFirst({ orderBy: { sortOrder: "desc" } });
+    const d = await ExperienceModel.findOne(filter).sort(sort).select({ sortOrder: 1 }).lean();
+    top = d ? { sortOrder: d.sortOrder } : null;
   } else if (entity === "education") {
-    max = await prisma.education.findFirst({ orderBy: { sortOrder: "desc" } });
+    const d = await EducationModel.findOne(filter).sort(sort).select({ sortOrder: 1 }).lean();
+    top = d ? { sortOrder: d.sortOrder } : null;
   } else if (entity === "certification") {
-    max = await prisma.certification.findFirst({ orderBy: { sortOrder: "desc" } });
+    const d = await CertificationModel.findOne(filter).sort(sort).select({ sortOrder: 1 }).lean();
+    top = d ? { sortOrder: d.sortOrder } : null;
   } else {
-    max = await prisma.project.findFirst({ orderBy: { sortOrder: "desc" } });
+    const d = await ProjectModel.findOne(filter).sort(sort).select({ sortOrder: 1 }).lean();
+    top = d ? { sortOrder: d.sortOrder } : null;
   }
-  return (max?.sortOrder ?? 0) + 1;
+  return (top?.sortOrder ?? 0) + 1;
 }
 
-export async function createExperience(raw: unknown): Promise<ActionResult<{ id: number }>> {
+export async function createExperience(raw: unknown): Promise<ActionResult<{ id: string }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -200,22 +243,28 @@ export async function createExperience(raw: unknown): Promise<ActionResult<{ id:
   const parsed = experienceSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error);
   try {
+    await connect();
     const data = parsed.data;
     const sortOrder = data.sortOrder || (await bumpSortOrder("experience"));
-    const { id: _ignored, ...payload } = data;
+    const { id: _ignored, startDate, endDate, current, ...rest } = data;
     void _ignored;
-    const row = await prisma.experience.create({
-      data: { ...payload, sortOrder },
+    const row = await ExperienceModel.create({
+      ...rest,
+      startDate: new Date(startDate),
+      endDate: endDate ? new Date(endDate) : null,
+      current,
+      sortOrder,
     });
+    const id = row._id.toString();
     await revalidateEntity("experience");
-    await logActivity(email, "created", "experience", row.id);
-    return ok({ id: row.id }, row.id);
+    await logActivity(email, "created", "experience", id);
+    return ok({ id }, id);
   } catch (e) {
     return fail(e);
   }
 }
 
-export async function updateExperience(raw: unknown): Promise<ActionResult<{ id: number }>> {
+export async function updateExperience(raw: unknown): Promise<ActionResult<{ id: string }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -226,20 +275,26 @@ export async function updateExperience(raw: unknown): Promise<ActionResult<{ id:
   if (!parsed.success) return fail(parsed.error);
   if (!parsed.data.id) return fail(new Error("id is required"));
   try {
-    const { id, ...rest } = parsed.data;
-    // Convert empty endDate string to null; current=true means null.
-    const data: Record<string, unknown> = { ...rest };
-    if (rest.current) data.endDate = null;
-    const row = await prisma.experience.update({ where: { id }, data });
+    await connect();
+    const { id, startDate, endDate, current, ...rest } = parsed.data;
+    // current=true means endDate is null.
+    const update: Record<string, unknown> = {
+      ...rest,
+      startDate: new Date(startDate),
+      endDate: current || !endDate ? null : new Date(endDate),
+      current,
+    };
+    const row = await ExperienceModel.findByIdAndUpdate(id, { $set: update }, { new: true });
+    if (!row) return fail(new Error("Record not found."));
     await revalidateEntity("experience");
     await logActivity(email, "updated", "experience", id);
-    return ok({ id: row.id }, row.id);
+    return ok({ id }, id);
   } catch (e) {
     return fail(e);
   }
 }
 
-export async function deleteExperience(id: number): Promise<ActionResult> {
+export async function deleteExperience(id: string): Promise<ActionResult> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -247,7 +302,9 @@ export async function deleteExperience(id: number): Promise<ActionResult> {
     return fail(e);
   }
   try {
-    await prisma.experience.delete({ where: { id } });
+    await connect();
+    const res = await ExperienceModel.findByIdAndDelete(id);
+    if (!res) return fail(new Error("Record not found."));
     await revalidateEntity("experience");
     await logActivity(email, "deleted", "experience", id);
     return ok();
@@ -259,7 +316,7 @@ export async function deleteExperience(id: number): Promise<ActionResult> {
 // ---------------------------------------------------------------------------
 // Education
 // ---------------------------------------------------------------------------
-export async function createEducation(raw: unknown): Promise<ActionResult<{ id: number }>> {
+export async function createEducation(raw: unknown): Promise<ActionResult<{ id: string }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -269,20 +326,22 @@ export async function createEducation(raw: unknown): Promise<ActionResult<{ id: 
   const parsed = educationSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error);
   try {
+    await connect();
     const data = parsed.data;
     const sortOrder = data.sortOrder || (await bumpSortOrder("education"));
-    const { id: _ignored, ...payload } = data;
+    const { id: _ignored, ...rest } = data;
     void _ignored;
-    const row = await prisma.education.create({ data: { ...payload, sortOrder } });
+    const row = await EducationModel.create({ ...rest, sortOrder });
+    const id = row._id.toString();
     await revalidateEntity("education");
-    await logActivity(email, "created", "education", row.id);
-    return ok({ id: row.id }, row.id);
+    await logActivity(email, "created", "education", id);
+    return ok({ id }, id);
   } catch (e) {
     return fail(e);
   }
 }
 
-export async function updateEducation(raw: unknown): Promise<ActionResult<{ id: number }>> {
+export async function updateEducation(raw: unknown): Promise<ActionResult<{ id: string }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -293,17 +352,19 @@ export async function updateEducation(raw: unknown): Promise<ActionResult<{ id: 
   if (!parsed.success) return fail(parsed.error);
   if (!parsed.data.id) return fail(new Error("id is required"));
   try {
+    await connect();
     const { id, ...rest } = parsed.data;
-    const row = await prisma.education.update({ where: { id }, data: rest });
+    const row = await EducationModel.findByIdAndUpdate(id, { $set: rest }, { new: true });
+    if (!row) return fail(new Error("Record not found."));
     await revalidateEntity("education");
     await logActivity(email, "updated", "education", id);
-    return ok({ id: row.id }, row.id);
+    return ok({ id }, id);
   } catch (e) {
     return fail(e);
   }
 }
 
-export async function deleteEducation(id: number): Promise<ActionResult> {
+export async function deleteEducation(id: string): Promise<ActionResult> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -311,7 +372,9 @@ export async function deleteEducation(id: number): Promise<ActionResult> {
     return fail(e);
   }
   try {
-    await prisma.education.delete({ where: { id } });
+    await connect();
+    const res = await EducationModel.findByIdAndDelete(id);
+    if (!res) return fail(new Error("Record not found."));
     await revalidateEntity("education");
     await logActivity(email, "deleted", "education", id);
     return ok();
@@ -323,7 +386,7 @@ export async function deleteEducation(id: number): Promise<ActionResult> {
 // ---------------------------------------------------------------------------
 // Certification
 // ---------------------------------------------------------------------------
-export async function createCertification(raw: unknown): Promise<ActionResult<{ id: number }>> {
+export async function createCertification(raw: unknown): Promise<ActionResult<{ id: string }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -333,20 +396,22 @@ export async function createCertification(raw: unknown): Promise<ActionResult<{ 
   const parsed = certificationSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error);
   try {
+    await connect();
     const data = parsed.data;
     const sortOrder = data.sortOrder || (await bumpSortOrder("certification"));
-    const { id: _ignored, ...payload } = data;
+    const { id: _ignored, ...rest } = data;
     void _ignored;
-    const row = await prisma.certification.create({ data: { ...payload, sortOrder } });
+    const row = await CertificationModel.create({ ...rest, sortOrder });
+    const id = row._id.toString();
     await revalidateEntity("certification");
-    await logActivity(email, "created", "certification", row.id);
-    return ok({ id: row.id }, row.id);
+    await logActivity(email, "created", "certification", id);
+    return ok({ id }, id);
   } catch (e) {
     return fail(e);
   }
 }
 
-export async function updateCertification(raw: unknown): Promise<ActionResult<{ id: number }>> {
+export async function updateCertification(raw: unknown): Promise<ActionResult<{ id: string }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -357,17 +422,19 @@ export async function updateCertification(raw: unknown): Promise<ActionResult<{ 
   if (!parsed.success) return fail(parsed.error);
   if (!parsed.data.id) return fail(new Error("id is required"));
   try {
+    await connect();
     const { id, ...rest } = parsed.data;
-    const row = await prisma.certification.update({ where: { id }, data: rest });
+    const row = await CertificationModel.findByIdAndUpdate(id, { $set: rest }, { new: true });
+    if (!row) return fail(new Error("Record not found."));
     await revalidateEntity("certification");
     await logActivity(email, "updated", "certification", id);
-    return ok({ id: row.id }, row.id);
+    return ok({ id }, id);
   } catch (e) {
     return fail(e);
   }
 }
 
-export async function deleteCertification(id: number): Promise<ActionResult> {
+export async function deleteCertification(id: string): Promise<ActionResult> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -375,7 +442,9 @@ export async function deleteCertification(id: number): Promise<ActionResult> {
     return fail(e);
   }
   try {
-    await prisma.certification.delete({ where: { id } });
+    await connect();
+    const res = await CertificationModel.findByIdAndDelete(id);
+    if (!res) return fail(new Error("Record not found."));
     await revalidateEntity("certification");
     await logActivity(email, "deleted", "certification", id);
     return ok();
@@ -387,7 +456,7 @@ export async function deleteCertification(id: number): Promise<ActionResult> {
 // ---------------------------------------------------------------------------
 // Skill groups + skills
 // ---------------------------------------------------------------------------
-export async function createSkillGroup(raw: unknown): Promise<ActionResult<{ id: number }>> {
+export async function createSkillGroup(raw: unknown): Promise<ActionResult<{ id: string }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -397,16 +466,18 @@ export async function createSkillGroup(raw: unknown): Promise<ActionResult<{ id:
   const parsed = skillGroupSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error);
   try {
-    const row = await prisma.skillGroup.create({ data: parsed.data });
+    await connect();
+    const row = await SkillGroupModel.create(parsed.data);
+    const id = row._id.toString();
     await revalidateEntity("skillGroup");
-    await logActivity(email, "created", "skillGroup", row.id);
-    return ok({ id: row.id }, row.id);
+    await logActivity(email, "created", "skillGroup", id);
+    return ok({ id }, id);
   } catch (e) {
     return fail(e);
   }
 }
 
-export async function updateSkillGroup(raw: unknown): Promise<ActionResult<{ id: number }>> {
+export async function updateSkillGroup(raw: unknown): Promise<ActionResult<{ id: string }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -417,17 +488,19 @@ export async function updateSkillGroup(raw: unknown): Promise<ActionResult<{ id:
   if (!parsed.success) return fail(parsed.error);
   if (!parsed.data.id) return fail(new Error("id is required"));
   try {
+    await connect();
     const { id, ...rest } = parsed.data;
-    const row = await prisma.skillGroup.update({ where: { id }, data: rest });
+    const row = await SkillGroupModel.findByIdAndUpdate(id, { $set: rest }, { new: true });
+    if (!row) return fail(new Error("Record not found."));
     await revalidateEntity("skillGroup");
     await logActivity(email, "updated", "skillGroup", id);
-    return ok({ id: row.id }, row.id);
+    return ok({ id }, id);
   } catch (e) {
     return fail(e);
   }
 }
 
-export async function deleteSkillGroup(id: number): Promise<ActionResult> {
+export async function deleteSkillGroup(id: string): Promise<ActionResult> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -435,7 +508,12 @@ export async function deleteSkillGroup(id: number): Promise<ActionResult> {
     return fail(e);
   }
   try {
-    await prisma.skillGroup.delete({ where: { id } });
+    await connect();
+    // Cascade delete skills in the group.
+    const group = await SkillGroupModel.findById(id).select({ _id: 1 }).lean();
+    if (!group) return fail(new Error("Record not found."));
+    await SkillModel.deleteMany({ groupId: group._id });
+    await SkillGroupModel.findByIdAndDelete(id);
     await revalidateEntity("skillGroup");
     await logActivity(email, "deleted", "skillGroup", id);
     return ok();
@@ -444,7 +522,7 @@ export async function deleteSkillGroup(id: number): Promise<ActionResult> {
   }
 }
 
-export async function createSkill(raw: unknown): Promise<ActionResult<{ id: number }>> {
+export async function createSkill(raw: unknown): Promise<ActionResult<{ id: string }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -454,16 +532,22 @@ export async function createSkill(raw: unknown): Promise<ActionResult<{ id: numb
   const parsed = skillSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error);
   try {
-    const row = await prisma.skill.create({ data: parsed.data });
+    await connect();
+    const data = parsed.data;
+    const row = await SkillModel.create({
+      ...data,
+      groupId: new Types.ObjectId(data.groupId),
+    });
+    const id = row._id.toString();
     await revalidateEntity("skill");
-    await logActivity(email, "created", "skill", row.id);
-    return ok({ id: row.id }, row.id);
+    await logActivity(email, "created", "skill", id);
+    return ok({ id }, id);
   } catch (e) {
     return fail(e);
   }
 }
 
-export async function updateSkill(raw: unknown): Promise<ActionResult<{ id: number }>> {
+export async function updateSkill(raw: unknown): Promise<ActionResult<{ id: string }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -474,17 +558,23 @@ export async function updateSkill(raw: unknown): Promise<ActionResult<{ id: numb
   if (!parsed.success) return fail(parsed.error);
   if (!parsed.data.id) return fail(new Error("id is required"));
   try {
-    const { id, ...rest } = parsed.data;
-    const row = await prisma.skill.update({ where: { id }, data: rest });
+    await connect();
+    const { id, groupId, ...rest } = parsed.data;
+    const row = await SkillModel.findByIdAndUpdate(
+      id,
+      { $set: { ...rest, groupId: new Types.ObjectId(groupId) } },
+      { new: true },
+    );
+    if (!row) return fail(new Error("Record not found."));
     await revalidateEntity("skill");
     await logActivity(email, "updated", "skill", id);
-    return ok({ id: row.id }, row.id);
+    return ok({ id }, id);
   } catch (e) {
     return fail(e);
   }
 }
 
-export async function deleteSkill(id: number): Promise<ActionResult> {
+export async function deleteSkill(id: string): Promise<ActionResult> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -492,7 +582,9 @@ export async function deleteSkill(id: number): Promise<ActionResult> {
     return fail(e);
   }
   try {
-    await prisma.skill.delete({ where: { id } });
+    await connect();
+    const res = await SkillModel.findByIdAndDelete(id);
+    if (!res) return fail(new Error("Record not found."));
     await revalidateEntity("skill");
     await logActivity(email, "deleted", "skill", id);
     return ok();
@@ -504,7 +596,7 @@ export async function deleteSkill(id: number): Promise<ActionResult> {
 // ---------------------------------------------------------------------------
 // Project
 // ---------------------------------------------------------------------------
-export async function createProject(raw: unknown): Promise<ActionResult<{ id: number }>> {
+export async function createProject(raw: unknown): Promise<ActionResult<{ id: string }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -514,28 +606,28 @@ export async function createProject(raw: unknown): Promise<ActionResult<{ id: nu
   const parsed = projectSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error);
   try {
+    await connect();
     const data = parsed.data;
     if (!data.slug) data.slug = slugify(data.title);
     const sortOrder = data.sortOrder || (await bumpSortOrder("project"));
     const { id: _ignored, links, ...rest } = data;
     void _ignored;
-    const row = await prisma.project.create({
-      data: {
-        ...rest,
-        sortOrder,
-        links: links ?? Prisma.JsonNull,
-      },
+    const row = await ProjectModel.create({
+      ...rest,
+      sortOrder,
+      links: links ?? null,
     });
+    const id = row._id.toString();
     await revalidateEntity("project");
     if (data.featured) revalidateTag("projects-featured");
-    await logActivity(email, "created", "project", row.id);
-    return ok({ id: row.id }, row.id);
+    await logActivity(email, "created", "project", id);
+    return ok({ id }, id);
   } catch (e) {
     return fail(e);
   }
 }
 
-export async function updateProject(raw: unknown): Promise<ActionResult<{ id: number; featuredCount: number }>> {
+export async function updateProject(raw: unknown): Promise<ActionResult<{ id: string; featuredCount: number }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -546,30 +638,31 @@ export async function updateProject(raw: unknown): Promise<ActionResult<{ id: nu
   if (!parsed.success) return fail(parsed.error);
   if (!parsed.data.id) return fail(new Error("id is required"));
   try {
+    await connect();
     const data = parsed.data;
     if (!data.slug) data.slug = slugify(data.title);
     const { id, links, ...rest } = data;
-    const wasFeatured = await prisma.project.findUnique({ where: { id }, select: { featured: true } });
-    const row = await prisma.project.update({
-      where: { id },
-      data: {
-        ...rest,
-        links: links === null || links === undefined ? Prisma.JsonNull : (links as Prisma.InputJsonValue),
-      },
-    });
-    const featuredCount = await prisma.project.count({
-      where: { featured: true, status: "published" },
+    const existing = await ProjectModel.findById(id).select({ featured: 1 }).lean();
+    if (!existing) return fail(new Error("Record not found."));
+    const row = await ProjectModel.findByIdAndUpdate(
+      id,
+      { $set: { ...rest, links: links ?? null } },
+      { new: true },
+    );
+    const featuredCount = await ProjectModel.countDocuments({
+      featured: true,
+      status: "published",
     });
     await revalidateEntity("project");
-    if (rest.featured || wasFeatured?.featured) revalidateTag("projects-featured");
+    if (rest.featured || existing.featured) revalidateTag("projects-featured");
     await logActivity(email, "updated", "project", id);
-    return ok({ id: row.id, featuredCount }, row.id);
+    return ok({ id: id!, featuredCount }, id!);
   } catch (e) {
     return fail(e);
   }
 }
 
-export async function deleteProject(id: number): Promise<ActionResult> {
+export async function deleteProject(id: string): Promise<ActionResult> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -577,10 +670,12 @@ export async function deleteProject(id: number): Promise<ActionResult> {
     return fail(e);
   }
   try {
-    const wasFeatured = await prisma.project.findUnique({ where: { id }, select: { featured: true } });
-    await prisma.project.delete({ where: { id } });
+    await connect();
+    const existing = await ProjectModel.findById(id).select({ featured: 1 }).lean();
+    if (!existing) return fail(new Error("Record not found."));
+    await ProjectModel.findByIdAndDelete(id);
     await revalidateEntity("project");
-    if (wasFeatured?.featured) revalidateTag("projects-featured");
+    if (existing.featured) revalidateTag("projects-featured");
     await logActivity(email, "deleted", "project", id);
     return ok();
   } catch (e) {
@@ -591,7 +686,12 @@ export async function deleteProject(id: number): Promise<ActionResult> {
 // ---------------------------------------------------------------------------
 // Blog post + tag
 // ---------------------------------------------------------------------------
-export async function createBlogPost(raw: unknown): Promise<ActionResult<{ id: number }>> {
+//
+// After the Mongo migration blog posts embed `tagIds: Types.ObjectId[]`
+// instead of a Prisma M2M relation. The admin schemas accept ids as strings,
+// so we convert them to ObjectIds at the boundary.
+// ---------------------------------------------------------------------------
+export async function createBlogPost(raw: unknown): Promise<ActionResult<{ id: string }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -601,9 +701,10 @@ export async function createBlogPost(raw: unknown): Promise<ActionResult<{ id: n
   const parsed = blogPostSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error);
   try {
+    await connect();
     const data = parsed.data;
     if (!data.slug) data.slug = slugify(data.title);
-    const { id: _ignored, tagIds, publishedAt, ...rest } = data;
+    const { id: _ignored, tagIds, publishedAt, bodyMd, readingMinutes: rm, ...rest } = data;
     void _ignored;
     const publishedAtDate =
       rest.status === "published"
@@ -611,23 +712,23 @@ export async function createBlogPost(raw: unknown): Promise<ActionResult<{ id: n
           ? new Date(publishedAt)
           : new Date()
         : null;
-    const row = await prisma.blogPost.create({
-      data: {
-        ...rest,
-        readingMinutes: rest.readingMinutes || readingMinutes(rest.bodyMd),
-        publishedAt: publishedAtDate,
-        tags: { connect: tagIds.map((tagId) => ({ id: tagId })) },
-      },
+    const row = await BlogPostModel.create({
+      ...rest,
+      bodyMd,
+      readingMinutes: rm || readingMinutes(bodyMd),
+      publishedAt: publishedAtDate,
+      tagIds: toObjectIds(tagIds ?? []),
     });
+    const id = row._id.toString();
     await revalidateEntity("blogPost");
-    await logActivity(email, "created", "blogPost", row.id);
-    return ok({ id: row.id }, row.id);
+    await logActivity(email, "created", "blogPost", id);
+    return ok({ id }, id);
   } catch (e) {
     return fail(e);
   }
 }
 
-export async function updateBlogPost(raw: unknown): Promise<ActionResult<{ id: number }>> {
+export async function updateBlogPost(raw: unknown): Promise<ActionResult<{ id: string }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -638,34 +739,42 @@ export async function updateBlogPost(raw: unknown): Promise<ActionResult<{ id: n
   if (!parsed.success) return fail(parsed.error);
   if (!parsed.data.id) return fail(new Error("id is required"));
   try {
+    await connect();
     const data = parsed.data;
     if (!data.slug) data.slug = slugify(data.title);
-    const { id, tagIds, publishedAt, ...rest } = data;
-    const existing = await prisma.blogPost.findUnique({ where: { id }, select: { status: true, publishedAt: true } });
+    const { id, tagIds, publishedAt, bodyMd, readingMinutes: rm, ...rest } = data;
+    const existing = await BlogPostModel.findById(id)
+      .select({ status: 1, publishedAt: 1 })
+      .lean();
+    if (!existing) return fail(new Error("Record not found."));
     const publishedAtDate =
       rest.status === "published"
         ? publishedAt
           ? new Date(publishedAt)
-          : existing?.publishedAt ?? new Date()
+          : existing.publishedAt ?? new Date()
         : null;
-    const row = await prisma.blogPost.update({
-      where: { id },
-      data: {
-        ...rest,
-        readingMinutes: rest.readingMinutes || readingMinutes(rest.bodyMd),
-        publishedAt: publishedAtDate,
-        tags: { set: tagIds.map((tagId) => ({ id: tagId })) },
+    const row = await BlogPostModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          ...rest,
+          bodyMd,
+          readingMinutes: rm || readingMinutes(bodyMd),
+          publishedAt: publishedAtDate,
+          tagIds: toObjectIds(tagIds ?? []),
+        },
       },
-    });
+      { new: true },
+    );
     await revalidateEntity("blogPost");
     await logActivity(email, "updated", "blogPost", id);
-    return ok({ id: row.id }, row.id);
+    return ok({ id: id! }, id!);
   } catch (e) {
     return fail(e);
   }
 }
 
-export async function deleteBlogPost(id: number): Promise<ActionResult> {
+export async function deleteBlogPost(id: string): Promise<ActionResult> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -673,7 +782,9 @@ export async function deleteBlogPost(id: number): Promise<ActionResult> {
     return fail(e);
   }
   try {
-    await prisma.blogPost.delete({ where: { id } });
+    await connect();
+    const res = await BlogPostModel.findByIdAndDelete(id);
+    if (!res) return fail(new Error("Record not found."));
     await revalidateEntity("blogPost");
     await logActivity(email, "deleted", "blogPost", id);
     return ok();
@@ -682,7 +793,7 @@ export async function deleteBlogPost(id: number): Promise<ActionResult> {
   }
 }
 
-export async function createBlogTag(raw: unknown): Promise<ActionResult<{ id: number; slug: string }>> {
+export async function createBlogTag(raw: unknown): Promise<ActionResult<{ id: string; slug: string }>> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -692,24 +803,26 @@ export async function createBlogTag(raw: unknown): Promise<ActionResult<{ id: nu
   const parsed = blogTagSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error);
   try {
+    await connect();
     const data = parsed.data;
     const slug = data.slug || slugify(data.name);
-    const row = await prisma.blogTag.upsert({
-      where: { slug },
-      create: { name: data.name, slug },
-      update: { name: data.name },
-    });
+    const row = await BlogTagModel.findOneAndUpdate(
+      { slug },
+      { $set: { name: data.name }, $setOnInsert: { slug } },
+      { upsert: true, new: true },
+    );
+    const id = row._id.toString();
     await revalidateEntity("blogTag");
-    await logActivity(email, "created", "blogTag", row.id);
-    return ok({ id: row.id, slug: row.slug }, row.id);
+    await logActivity(email, "created", "blogTag", id);
+    return ok({ id, slug }, id);
   } catch (e) {
     return fail(e);
   }
 }
 
 export async function attachTagsToPost(
-  postId: number,
-  tagIds: number[],
+  postId: string,
+  tagIds: string[],
 ): Promise<ActionResult> {
   let email: string;
   try {
@@ -718,10 +831,13 @@ export async function attachTagsToPost(
     return fail(e);
   }
   try {
-    await prisma.blogPost.update({
-      where: { id: postId },
-      data: { tags: { set: tagIds.map((id) => ({ id })) } },
-    });
+    await connect();
+    const res = await BlogPostModel.findByIdAndUpdate(
+      postId,
+      { $set: { tagIds: toObjectIds(tagIds) } },
+      { new: true },
+    );
+    if (!res) return fail(new Error("Record not found."));
     await revalidateEntity("blogPost");
     await logActivity(email, "updated", "blogPost", postId);
     return ok();
@@ -733,7 +849,7 @@ export async function attachTagsToPost(
 // ---------------------------------------------------------------------------
 // Messages
 // ---------------------------------------------------------------------------
-export async function markMessageRead(id: number): Promise<ActionResult> {
+export async function markMessageRead(id: string): Promise<ActionResult> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -741,7 +857,9 @@ export async function markMessageRead(id: number): Promise<ActionResult> {
     return fail(e);
   }
   try {
-    await prisma.message.update({ where: { id }, data: { readAt: new Date() } });
+    await connect();
+    const res = await MessageModel.findByIdAndUpdate(id, { $set: { readAt: new Date() } }, { new: true });
+    if (!res) return fail(new Error("Record not found."));
     await logActivity(email, "updated", "message", id);
     return ok();
   } catch (e) {
@@ -749,7 +867,7 @@ export async function markMessageRead(id: number): Promise<ActionResult> {
   }
 }
 
-export async function markMessageUnread(id: number): Promise<ActionResult> {
+export async function markMessageUnread(id: string): Promise<ActionResult> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -757,7 +875,9 @@ export async function markMessageUnread(id: number): Promise<ActionResult> {
     return fail(e);
   }
   try {
-    await prisma.message.update({ where: { id }, data: { readAt: null } });
+    await connect();
+    const res = await MessageModel.findByIdAndUpdate(id, { $set: { readAt: null } }, { new: true });
+    if (!res) return fail(new Error("Record not found."));
     await logActivity(email, "updated", "message", id);
     return ok();
   } catch (e) {
@@ -765,7 +885,7 @@ export async function markMessageUnread(id: number): Promise<ActionResult> {
   }
 }
 
-export async function markMessageArchived(id: number, archived: boolean): Promise<ActionResult> {
+export async function markMessageArchived(id: string, archived: boolean): Promise<ActionResult> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -773,7 +893,9 @@ export async function markMessageArchived(id: number, archived: boolean): Promis
     return fail(e);
   }
   try {
-    await prisma.message.update({ where: { id }, data: { archived } });
+    await connect();
+    const res = await MessageModel.findByIdAndUpdate(id, { $set: { archived } }, { new: true });
+    if (!res) return fail(new Error("Record not found."));
     await logActivity(email, "updated", "message", id, { archived });
     return ok();
   } catch (e) {
@@ -781,7 +903,7 @@ export async function markMessageArchived(id: number, archived: boolean): Promis
   }
 }
 
-export async function deleteMessage(id: number): Promise<ActionResult> {
+export async function deleteMessage(id: string): Promise<ActionResult> {
   let email: string;
   try {
     ({ email } = await requireAdmin());
@@ -789,7 +911,9 @@ export async function deleteMessage(id: number): Promise<ActionResult> {
     return fail(e);
   }
   try {
-    await prisma.message.delete({ where: { id } });
+    await connect();
+    const res = await MessageModel.findByIdAndDelete(id);
+    if (!res) return fail(new Error("Record not found."));
     await logActivity(email, "deleted", "message", id);
     return ok();
   } catch (e) {
@@ -810,6 +934,7 @@ export async function reorder(raw: unknown): Promise<ActionResult> {
   const parsed = reorderSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error);
   try {
+    await connect();
     const { entity, id, direction } = parsed.data;
     await swapSortOrder(entity, id, direction);
     const map: Record<ReorderEntity, EntityName> = {
@@ -829,51 +954,55 @@ export async function reorder(raw: unknown): Promise<ActionResult> {
   }
 }
 
+type SortableRow = { id: string; sortOrder: number };
+
+async function loadSortableRows(
+  entity: ReorderEntity,
+  id: string,
+): Promise<SortableRow[]> {
+  const sort = { sortOrder: 1, _id: 1 } as const;
+  if (entity === "experience") {
+    return ExperienceModel.find({}).sort(sort).select({ _id: 1, sortOrder: 1 }).lean()
+      .then((r) => r.map((d) => ({ id: d._id.toString(), sortOrder: d.sortOrder })));
+  }
+  if (entity === "education") {
+    return EducationModel.find({}).sort(sort).select({ _id: 1, sortOrder: 1 }).lean()
+      .then((r) => r.map((d) => ({ id: d._id.toString(), sortOrder: d.sortOrder })));
+  }
+  if (entity === "certification") {
+    return CertificationModel.find({}).sort(sort).select({ _id: 1, sortOrder: 1 }).lean()
+      .then((r) => r.map((d) => ({ id: d._id.toString(), sortOrder: d.sortOrder })));
+  }
+  if (entity === "project") {
+    return ProjectModel.find({}).sort(sort).select({ _id: 1, sortOrder: 1 }).lean()
+      .then((r) => r.map((d) => ({ id: d._id.toString(), sortOrder: d.sortOrder })));
+  }
+  if (entity === "skillGroup") {
+    return SkillGroupModel.find({}).sort(sort).select({ _id: 1, sortOrder: 1 }).lean()
+      .then((r) => r.map((d) => ({ id: d._id.toString(), sortOrder: d.sortOrder })));
+  }
+  // skill: scoped to its group
+  const target = await SkillModel.findById(id).select({ groupId: 1 }).lean();
+  if (!target) return [];
+  return SkillModel.find({ groupId: target.groupId })
+    .sort(sort)
+    .select({ _id: 1, sortOrder: 1 })
+    .lean()
+    .then((r) => r.map((d) => ({ id: d._id.toString(), sortOrder: d.sortOrder })));
+}
+
 async function swapSortOrder(
   entity: ReorderEntity,
-  id: number,
+  id: string,
   direction: "up" | "down",
 ) {
-  // For "skill" the natural order is within a group.
-  // For everything else it's global.
-  const orderBy = [{ sortOrder: "asc" as const }, { id: "asc" as const }];
-
-  type SortableRow = { id: number; sortOrder: number };
-  let rows: SortableRow[] = [];
-
-  if (entity === "experience") {
-    rows = await prisma.experience.findMany({ orderBy, select: { id: true, sortOrder: true } });
-  } else if (entity === "education") {
-    rows = await prisma.education.findMany({ orderBy, select: { id: true, sortOrder: true } });
-  } else if (entity === "certification") {
-    rows = await prisma.certification.findMany({ orderBy, select: { id: true, sortOrder: true } });
-  } else if (entity === "project") {
-    rows = await prisma.project.findMany({ orderBy, select: { id: true, sortOrder: true } });
-  } else if (entity === "blogPost") {
-    // BlogPost has no sortOrder; reordering falls back to createdAt.
-    const byCreated = await prisma.blogPost.findMany({
-      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      select: { id: true },
-    });
-    const idx = byCreated.findIndex((r) => r.id === id);
-    if (idx < 0) return;
-    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= byCreated.length) return;
-    // No-op swap: order by createdAt cannot be cheaply rearranged.
+  if (entity === "blogPost") {
+    // BlogPost has no sortOrder; reordering falls back to createdAt which
+    // is not cheap to swap. Keep the legacy no-op behaviour.
     return;
-  } else if (entity === "skillGroup") {
-    rows = await prisma.skillGroup.findMany({ orderBy, select: { id: true, sortOrder: true } });
-  } else {
-    // skill: scoped to its group
-    const target = await prisma.skill.findUnique({ where: { id }, select: { groupId: true } });
-    if (!target) return;
-    rows = await prisma.skill.findMany({
-      where: { groupId: target.groupId },
-      orderBy,
-      select: { id: true, sortOrder: true },
-    });
   }
 
+  const rows = await loadSortableRows(entity, id);
   const idx = rows.findIndex((r) => r.id === id);
   if (idx < 0) return;
   const swapIdx = direction === "up" ? idx - 1 : idx + 1;
@@ -881,37 +1010,19 @@ async function swapSortOrder(
   const a = rows[idx]!;
   const b = rows[swapIdx]!;
 
-  if (entity === "experience") {
-    await prisma.$transaction([
-      prisma.experience.update({ where: { id: a.id }, data: { sortOrder: b.sortOrder } }),
-      prisma.experience.update({ where: { id: b.id }, data: { sortOrder: a.sortOrder } }),
-    ]);
-  } else if (entity === "education") {
-    await prisma.$transaction([
-      prisma.education.update({ where: { id: a.id }, data: { sortOrder: b.sortOrder } }),
-      prisma.education.update({ where: { id: b.id }, data: { sortOrder: a.sortOrder } }),
-    ]);
-  } else if (entity === "certification") {
-    await prisma.$transaction([
-      prisma.certification.update({ where: { id: a.id }, data: { sortOrder: b.sortOrder } }),
-      prisma.certification.update({ where: { id: b.id }, data: { sortOrder: a.sortOrder } }),
-    ]);
-  } else if (entity === "project") {
-    await prisma.$transaction([
-      prisma.project.update({ where: { id: a.id }, data: { sortOrder: b.sortOrder } }),
-      prisma.project.update({ where: { id: b.id }, data: { sortOrder: a.sortOrder } }),
-    ]);
-  } else if (entity === "skillGroup") {
-    await prisma.$transaction([
-      prisma.skillGroup.update({ where: { id: a.id }, data: { sortOrder: b.sortOrder } }),
-      prisma.skillGroup.update({ where: { id: b.id }, data: { sortOrder: a.sortOrder } }),
-    ]);
-  } else if (entity === "skill") {
-    await prisma.$transaction([
-      prisma.skill.update({ where: { id: a.id }, data: { sortOrder: b.sortOrder } }),
-      prisma.skill.update({ where: { id: b.id }, data: { sortOrder: a.sortOrder } }),
-    ]);
-  }
+  // Sequential updates — fine for portfolio-scale writes. Each Model has a
+  // different generic so we route by entity instead of using a union.
+  const update = async (id: string, sortOrder: number) => {
+    if (entity === "experience") return ExperienceModel.findByIdAndUpdate(id, { $set: { sortOrder } });
+    if (entity === "education") return EducationModel.findByIdAndUpdate(id, { $set: { sortOrder } });
+    if (entity === "certification") return CertificationModel.findByIdAndUpdate(id, { $set: { sortOrder } });
+    if (entity === "project") return ProjectModel.findByIdAndUpdate(id, { $set: { sortOrder } });
+    if (entity === "skillGroup") return SkillGroupModel.findByIdAndUpdate(id, { $set: { sortOrder } });
+    return SkillModel.findByIdAndUpdate(id, { $set: { sortOrder } });
+  };
+
+  await update(a.id, b.sortOrder);
+  await update(b.id, a.sortOrder);
 }
 
 // ---------------------------------------------------------------------------

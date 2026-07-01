@@ -25,7 +25,7 @@ interface PageProps {
 
 export async function generateStaticParams() {
   try {
-    const projects = await getPublishedProjects();
+    const projects = (await getPublishedProjects()) as unknown as Array<{ slug: string }>;
     return projects.map((p) => ({ slug: p.slug }));
   } catch {
     return [];
@@ -36,9 +36,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   let title = slug;
   let description = "Case study by Md Kamal Hosen.";
-  let project: Awaited<ReturnType<typeof getProjectBySlug>> = null;
+  let project: { title: string; excerpt?: string | null } | null = null;
   try {
-    project = await getProjectBySlug(slug);
+    project = ((await getProjectBySlug(slug)) as unknown) as {
+      title: string;
+      excerpt?: string | null;
+    } | null;
     if (project) {
       title = project.title;
       description = project.excerpt ?? description;
@@ -91,11 +94,38 @@ const coverByCategory: Record<string, string> = {
 
 export default async function ProjectDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const project = await getProjectBySlug(slug).catch(() => null);
+  const project = (await getProjectBySlug(slug).catch(() => null)) as unknown as {
+    id: string;
+    slug: string;
+    title: string;
+    excerpt: string;
+    coverUrl?: string | null;
+    status: string;
+    category: string;
+    year: number;
+    clientType?: string | null;
+    techStack: string[];
+    problem?: string | null;
+    role?: string | null;
+    challenges?: string | null;
+    solution?: string | null;
+    outcome?: string | null;
+    lessons?: string | null;
+    galleryImages?: string[];
+    links?: { live?: string | null; github?: string | null; pdf?: string | null } | null;
+  } | null;
 
   if (!project || project.status !== "published") notFound();
 
-  const all = await getPublishedProjects().catch(() => []);
+  const all = ((await getPublishedProjects().catch(() => [])) as unknown) as Array<{
+    slug: string;
+    title: string;
+    excerpt: string;
+    coverUrl?: string | null;
+    category: string;
+    year: number;
+    techStack: string[];
+  }>;
   const idx = all.findIndex((p) => p.slug === slug);
   const prev = idx > 0 ? all[idx - 1] : null;
   const next = idx >= 0 && idx < all.length - 1 ? all[idx + 1] : null;

@@ -17,10 +17,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const [projects, posts, tags] = await Promise.all([
-    getPublishedProjects().catch(() => []),
-    getPublishedPosts().catch(() => []),
-    getAllTags().catch(() => []),
-  ]);
+    getPublishedProjects().catch(() => [] as unknown[]),
+    getPublishedPosts().catch(() => [] as unknown[]),
+    getAllTags().catch(() => [] as unknown[]),
+  ]) as [
+    Array<{ slug: string; updatedAt?: Date }>,
+    Array<{ slug: string; updatedAt?: Date }>,
+    Array<{ slug: string }>,
+  ];
 
   const projectRoutes: Array<MetadataRoute.Sitemap[number]> = projects.map((p) => ({
     url: `${siteUrl}/projects/${p.slug}`,

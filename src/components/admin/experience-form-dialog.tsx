@@ -27,7 +27,7 @@ import { experienceSchema, type ExperienceInput } from "@/lib/schemas";
 export interface ExperienceFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initial?: Partial<ExperienceInput> & { id?: number };
+  initial?: Partial<ExperienceInput> & { id?: string };
 }
 
 export function ExperienceFormDialog({

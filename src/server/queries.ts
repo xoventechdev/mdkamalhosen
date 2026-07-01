@@ -1,14 +1,31 @@
 import { unstable_cache } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import type { Types } from "mongoose";
+import {
+  connect,
+  toClient,
+  ProfileModel,
+  PROFILE_ID,
+  ExperienceModel,
+  EducationModel,
+  CertificationModel,
+  SkillGroupModel,
+  SkillModel,
+  ProjectModel,
+  BlogPostModel,
+  BlogTagModel,
+} from "@/lib/db";
 
 // ---------------------------------------------------------------------------
 // Cached data-access layer. Every public read goes through here so the entire
 // site benefits from Next.js fetch-level caching with tagged invalidation.
 // After an admin save we call revalidateTag() with the matching tag.
+//
+// All IDs are ObjectId strings (MongoDB). The Profile singleton has the fixed
+// id "507f1f77bcf86cd799439011" — see lib/db/models/profile.model.ts.
 // ---------------------------------------------------------------------------
 
 /**
- * Wraps a Prisma call with timing logs. Visible in Vercel runtime logs so we
+ * Wraps a Mongoose call with timing logs. Visible in Vercel runtime logs so we
  * can identify which query is the bottleneck on cold starts. The wrapper
  * itself is non-caching — caching is handled by `unstable_cache` further out.
  */
@@ -30,150 +47,270 @@ async function timed<T>(label: string, fn: () => Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * Resolve a flat array of `BlogTag`s for an array of posts, given the
+ * embedded `tagIds: Types.ObjectId[]` on each post. Mimics the shape of the
+ * old Prisma `include: { tags: true }` join so call-sites do not need to
+ * change.
+ */
+type ClientTag = { id: string; _id: Types.ObjectId; name: string; slug: string };
+
+type PostWithTags = {
+  id: string;
+  _id: Types.ObjectId;
+  slug: string;
+  title: string;
+  excerpt?: string | null;
+  coverUrl?: string | null;
+  bodyMd: string;
+  status: "draft" | "published";
+  publishedAt?: Date | null;
+  readingMinutes: number;
+  metaDescription?: string | null;
+  tagIds: Types.ObjectId[];
+  tags: ClientTag[];
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+type PostShape = PostWithTags;
+
+async function withTags(posts: PostShape[]): Promise<PostWithTags[]> {
+  const tagIds = Array.from(
+    new Set(posts.flatMap((p) => p.tagIds ?? [])),
+  ).map((id) => id.toString());
+  const tags = tagIds.length
+    ? await BlogTagModel.find({ _id: { $in: tagIds } }).lean()
+    : [];
+  const byId = new Map<string, ClientTag>(
+    tags.map((t) => [t._id.toString(), toClient(t) as unknown as ClientTag]),
+  );
+  return posts.map((p) => ({
+    ...p,
+    tags: (p.tagIds ?? [])
+      .map((id) => byId.get(id.toString()))
+      .filter((t): t is ClientTag => Boolean(t)),
+  }));
+}
+
 export const getProfile = unstable_cache(
   async () =>
-    timed("getProfile", () =>
-      prisma.profile.findUnique({ where: { id: 1 } }),
-    ),
+    timed("getProfile", async () => {
+      await connect();
+      const doc = await ProfileModel.findById(PROFILE_ID).lean();
+      return toClient(doc);
+    }),
   ["profile"],
   { tags: ["profile"], revalidate: 60 },
 );
 
 export const getAllExperiences = unstable_cache(
   async () =>
-    timed("getAllExperiences", () =>
-      prisma.experience.findMany({
-        orderBy: [{ sortOrder: "asc" }, { startDate: "desc" }],
-      }),
-    ),
+    timed("getAllExperiences", async () => {
+      await connect();
+      const docs = await ExperienceModel.find({})
+        .sort({ sortOrder: 1, startDate: -1 })
+        .lean();
+      return toClient(docs);
+    }),
   ["experiences"],
   { tags: ["experiences"], revalidate: 60 },
 );
 
 export const getAllEducation = unstable_cache(
   async () =>
-    timed("getAllEducation", () =>
-      prisma.education.findMany({ orderBy: [{ sortOrder: "asc" }] }),
-    ),
+    timed("getAllEducation", async () => {
+      await connect();
+      const docs = await EducationModel.find({})
+        .sort({ sortOrder: 1 })
+        .lean();
+      return toClient(docs);
+    }),
   ["education"],
   { tags: ["education"], revalidate: 60 },
 );
 
 export const getAllCertifications = unstable_cache(
   async () =>
-    timed("getAllCertifications", () =>
-      prisma.certification.findMany({ orderBy: [{ sortOrder: "asc" }] }),
-    ),
+    timed("getAllCertifications", async () => {
+      await connect();
+      const docs = await CertificationModel.find({})
+        .sort({ sortOrder: 1 })
+        .lean();
+      return toClient(docs);
+    }),
   ["certifications"],
   { tags: ["certifications"], revalidate: 60 },
 );
 
 export const getSkillGroups = unstable_cache(
   async () =>
-    timed("getSkillGroups", () =>
-      prisma.skillGroup.findMany({
-        include: { skills: { orderBy: [{ sortOrder: "asc" }] } },
-        orderBy: [{ sortOrder: "asc" }],
-      }),
-    ),
+    timed("getSkillGroups", async () => {
+      await connect();
+      // Manual join: load groups, then all skills whose groupId is in the
+      // group set, then stitch them. Replaces Prisma's `include: { skills }`.
+      const groups = await SkillGroupModel.find({})
+        .sort({ sortOrder: 1 })
+        .lean();
+      const groupIds = groups.map((g) => g._id);
+      const skills = groupIds.length
+        ? await SkillModel.find({ groupId: { $in: groupIds } })
+            .sort({ sortOrder: 1 })
+            .lean()
+        : [];
+      const skillsByGroup = new Map<string, unknown[]>();
+      for (const s of skills) {
+        const key = s.groupId.toString();
+        const bucket = skillsByGroup.get(key) ?? [];
+        bucket.push(toClient(s));
+        skillsByGroup.set(key, bucket);
+      }
+      return groups.map((g) =>
+        toClient({
+          ...g,
+          skills: skillsByGroup.get(g._id.toString()) ?? [],
+        }),
+      );
+    }),
   ["skills"],
   { tags: ["skills"], revalidate: 60 },
 );
 
 export const getPublishedProjects = unstable_cache(
   async () =>
-    timed("getPublishedProjects", () =>
-      prisma.project.findMany({
-        where: { status: "published" },
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-      }),
-    ),
+    timed("getPublishedProjects", async () => {
+      await connect();
+      const docs = await ProjectModel.find({ status: "published" })
+        .sort({ sortOrder: 1, createdAt: -1 })
+        .lean();
+      return toClient(docs);
+    }),
   ["projects"],
   { tags: ["projects"], revalidate: 60 },
 );
 
 export const getFeaturedProjects = unstable_cache(
   async () =>
-    timed("getFeaturedProjects", () =>
-      prisma.project.findMany({
-        where: { status: "published", featured: true },
-        orderBy: [{ sortOrder: "asc" }],
-        take: 3,
-      }),
-    ),
+    timed("getFeaturedProjects", async () => {
+      await connect();
+      const docs = await ProjectModel.find({
+        status: "published",
+        featured: true,
+      })
+        .sort({ sortOrder: 1 })
+        .limit(3)
+        .lean();
+      return toClient(docs);
+    }),
   ["projects-featured"],
   { tags: ["projects"], revalidate: 60 },
 );
 
 export const getProjectBySlug = unstable_cache(
   async (slug: string) =>
-    timed("getProjectBySlug", () =>
-      prisma.project.findUnique({ where: { slug } }),
-    ),
+    timed("getProjectBySlug", async () => {
+      await connect();
+      const doc = await ProjectModel.findOne({ slug }).lean();
+      return toClient(doc);
+    }),
   ["project-by-slug"],
   { tags: ["projects"], revalidate: 60 },
 );
 
-export const getPublishedPosts = unstable_cache(
-  async () =>
-    timed("getPublishedPosts", () =>
-      prisma.blogPost.findMany({
-        where: { status: "published" },
-        include: { tags: true },
-        orderBy: [{ publishedAt: "desc" }],
-      }),
-    ),
-  ["posts"],
-  { tags: ["blog"], revalidate: 60 },
-);
+/**
+ * Same shape as the old Postgres query (BlogPost & { tags: BlogTag[] }[]) but
+ * tags are joined manually via the embedded `tagIds` array.
+ *
+ * NOTE: this function intentionally bypasses `unstable_cache` because the body
+ * now does two queries (posts + tags) and we want them cached together with a
+ * single tag-based invalidation.
+ */
+export async function getPublishedPosts(): Promise<PostWithTags[]> {
+  return timed("getPublishedPosts", async () => {
+    const cache = unstable_cache(
+      async () => {
+        await connect();
+        const posts = await BlogPostModel.find({ status: "published" })
+          .sort({ publishedAt: -1 })
+          .lean();
+        const clientPosts = toClient(posts) as unknown as PostShape[];
+        return withTags(clientPosts);
+      },
+      ["posts-with-tags"],
+      { tags: ["blog"], revalidate: 60 },
+    );
+    return cache();
+  });
+}
 
-export const getLatestPosts = unstable_cache(
-  async (limit = 3) =>
-    timed("getLatestPosts", () =>
-      prisma.blogPost.findMany({
-        where: { status: "published" },
-        include: { tags: true },
-        orderBy: [{ publishedAt: "desc" }],
-        take: limit,
-      }),
-    ),
-  ["posts-latest"],
-  { tags: ["blog"], revalidate: 60 },
-);
+export async function getLatestPosts(limit = 3): Promise<PostWithTags[]> {
+  return timed("getLatestPosts", async () => {
+    const cache = unstable_cache(
+      async () => {
+        await connect();
+        const posts = await BlogPostModel.find({ status: "published" })
+          .sort({ publishedAt: -1 })
+          .limit(limit)
+          .lean();
+        const clientPosts = toClient(posts) as unknown as PostShape[];
+        return withTags(clientPosts);
+      },
+      ["posts-latest-with-tags", String(limit)],
+      { tags: ["blog"], revalidate: 60 },
+    );
+    return cache();
+  });
+}
 
-export const getPostBySlug = unstable_cache(
-  async (slug: string) =>
-    timed("getPostBySlug", () =>
-      prisma.blogPost.findUnique({
-        where: { slug },
-        include: { tags: true },
-      }),
-    ),
-  ["post-by-slug"],
-  { tags: ["blog"], revalidate: 60 },
-);
+export async function getPostBySlug(slug: string): Promise<PostWithTags | null> {
+  return timed("getPostBySlug", async () => {
+    const cache = unstable_cache(
+      async () => {
+        await connect();
+        const post = await BlogPostModel.findOne({ slug }).lean();
+        if (!post) return null;
+        const [clientPost] = toClient([post]) as unknown as PostShape[];
+        if (!clientPost) return null;
+        const [withT] = await withTags([clientPost]);
+        return withT ?? null;
+      },
+      ["post-by-slug-with-tags", slug],
+      { tags: ["blog"], revalidate: 60 },
+    );
+    return cache();
+  });
+}
 
-export const getPostsByTag = unstable_cache(
-  async (tagSlug: string) =>
-    timed("getPostsByTag", () =>
-      prisma.blogPost.findMany({
-        where: {
+export async function getPostsByTag(tagSlug: string): Promise<PostWithTags[]> {
+  return timed("getPostsByTag", async () => {
+    const cache = unstable_cache(
+      async () => {
+        await connect();
+        const tag = await BlogTagModel.findOne({ slug: tagSlug }).lean();
+        if (!tag) return [] as PostWithTags[];
+        const posts = await BlogPostModel.find({
           status: "published",
-          tags: { some: { slug: tagSlug } },
-        },
-        include: { tags: true },
-        orderBy: [{ publishedAt: "desc" }],
-      }),
-    ),
-  ["posts-by-tag"],
-  { tags: ["blog"], revalidate: 60 },
-);
+          tagIds: tag._id,
+        })
+          .sort({ publishedAt: -1 })
+          .lean();
+        const clientPosts = toClient(posts) as unknown as PostShape[];
+        return withTags(clientPosts);
+      },
+      ["posts-by-tag-with-tags", tagSlug],
+      { tags: ["blog"], revalidate: 60 },
+    );
+    return cache();
+  });
+}
 
 export const getAllTags = unstable_cache(
   async () =>
-    timed("getAllTags", () =>
-      prisma.blogTag.findMany({ orderBy: [{ name: "asc" }] }),
-    ),
+    timed("getAllTags", async () => {
+      await connect();
+      const docs = await BlogTagModel.find({}).sort({ name: 1 }).lean();
+      return toClient(docs);
+    }),
   ["tags"],
   { tags: ["blog"], revalidate: 60 },
 );

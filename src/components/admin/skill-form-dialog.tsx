@@ -22,8 +22,8 @@ import { skillSchema, type SkillInput } from "@/lib/schemas";
 export interface SkillFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  groupId: number;
-  initial?: Partial<SkillInput> & { id?: number };
+  groupId: string;
+  initial?: Partial<SkillInput> & { id?: string };
 }
 
 export function SkillFormDialog({

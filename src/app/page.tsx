@@ -454,7 +454,15 @@ function LatestPostsSkeleton() {
 // ---------------------------------------------------------------------------
 
 async function FeaturedProjectsSection() {
-  const projects = await getFeaturedProjects();
+  const projects = (await getFeaturedProjects()) as unknown as Array<{
+    slug: string;
+    title: string;
+    excerpt: string;
+    category: string;
+    year: number;
+    coverUrl?: string | null;
+    techStack: string[];
+  }>;
 
   if (projects.length === 0) {
     return (
@@ -519,7 +527,14 @@ async function FeaturedProjectsSection() {
 }
 
 async function LatestPostsSection() {
-  const posts = await getLatestPosts();
+  const posts = (await getLatestPosts()) as unknown as Array<{
+    slug: string;
+    title: string;
+    excerpt?: string | null;
+    publishedAt?: Date | null;
+    readingMinutes: number;
+    tags: Array<{ slug: string }>;
+  }>;
 
   // If no published posts exist, render nothing — no fallback content. The
   // surrounding page still works; this section just doesn't appear.

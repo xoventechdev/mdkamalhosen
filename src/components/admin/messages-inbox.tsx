@@ -33,7 +33,7 @@ import {
 import { formatDate } from "@/lib/utils";
 
 export interface MessageRow {
-  id: number;
+  id: string;
   name: string;
   email: string;
   subject: string | null;

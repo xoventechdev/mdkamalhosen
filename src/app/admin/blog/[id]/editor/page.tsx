@@ -1,7 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import {
+  connect,
+  BlogPostModel,
+  BlogTagModel,
+  toClient,
+} from "@/lib/db";
 import { BlogEditor } from "@/components/admin/blog-editor";
 import type { BlogPostInput } from "@/lib/schemas";
 
@@ -12,28 +17,53 @@ interface PageProps {
 }
 
 export default async function AdminBlogEditorPage({ params }: PageProps) {
-  const { id: idStr } = await params;
-  const id = Number(idStr);
-  if (!Number.isInteger(id) || id <= 0) notFound();
+  const { id } = await params;
+  if (!id) notFound();
 
-  const [row, allTags] = await Promise.all([
-    prisma.blogPost.findUnique({ where: { id }, include: { tags: true } }),
-    prisma.blogTag.findMany({ orderBy: { name: "asc" } }),
-  ]);
-  if (!row) notFound();
+  await connect();
+  const postDoc = await BlogPostModel.findById(id).lean();
+  if (!postDoc) notFound();
+  const post = toClient(postDoc) as unknown as {
+    id: string;
+    slug: string;
+    title: string;
+    excerpt?: string | null;
+    coverUrl?: string | null;
+    bodyMd: string;
+    status: "draft" | "published";
+    publishedAt?: Date | null;
+    readingMinutes: number;
+    metaDescription?: string | null;
+    tagIds: string[];
+  };
 
-  const initial: BlogPostInput & { id: number } = {
-    id: row.id,
-    slug: row.slug,
-    title: row.title,
-    excerpt: row.excerpt ?? "",
-    coverUrl: row.coverUrl ?? "",
-    bodyMd: row.bodyMd,
-    status: row.status,
-    publishedAt: row.publishedAt ? row.publishedAt.toISOString().slice(0, 10) : "",
-    readingMinutes: row.readingMinutes,
-    metaDescription: row.metaDescription ?? "",
-    tagIds: row.tags.map((t) => t.id),
+  // Manual join: BlogPost embeds tagIds; load the matching tags for the
+  // editor to display names.
+  const tagIds = post.tagIds ?? [];
+  const allTagDocs = await BlogTagModel.find({})
+    .sort({ name: 1 })
+    .lean();
+  const allTags = toClient(allTagDocs) as unknown as Array<{
+    id: string;
+    name: string;
+    slug: string;
+  }>;
+  const selectedTags = tagIds.length
+    ? allTags.filter((t) => tagIds.includes(t.id))
+    : [];
+
+  const initial: BlogPostInput & { id: string } = {
+    id: post.id,
+    slug: post.slug,
+    title: post.title,
+    excerpt: post.excerpt ?? "",
+    coverUrl: post.coverUrl ?? "",
+    bodyMd: post.bodyMd,
+    status: post.status,
+    publishedAt: post.publishedAt ? post.publishedAt.toISOString().slice(0, 10) : "",
+    readingMinutes: post.readingMinutes,
+    metaDescription: post.metaDescription ?? "",
+    tagIds: selectedTags.map((t) => t.id),
   };
 
   return (
@@ -44,7 +74,7 @@ export default async function AdminBlogEditorPage({ params }: PageProps) {
       >
         <ChevronLeft className="h-4 w-4" /> Back to blog
       </Link>
-      <BlogEditor initial={initial} availableTags={allTags} />
+      <BlogEditor initial={initial} availableTags={allTags as never} />
     </div>
   );
 }

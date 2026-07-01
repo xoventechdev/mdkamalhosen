@@ -92,7 +92,16 @@ const spySections = [
 ];
 
 export default async function AboutPage() {
-  const profile = await getProfile();
+  const profile = (await getProfile()) as unknown as {
+    name: string;
+    role: string;
+    tagline: string;
+    location: string;
+    summary: string;
+    mission: string;
+    philosophy: string;
+    values?: string[];
+  } | null;
 
   if (!profile) {
     return (

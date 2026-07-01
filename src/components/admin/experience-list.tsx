@@ -22,7 +22,7 @@ import { formatDate } from "@/lib/utils";
 import type { ExperienceInput } from "@/lib/schemas";
 
 export interface ExperienceRow {
-  id: number;
+  id: string;
   company: string;
   role: string;
   country: string;
@@ -47,7 +47,7 @@ export function ExperienceList({ rows }: ExperienceListProps) {
   const [deleting, setDeleting] = useState<ExperienceRow | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function move(id: number, dir: "up" | "down") {
+  function move(id: string, dir: "up" | "down") {
     startTransition(async () => {
       const res = await reorder({ entity: "experience", id, direction: dir });
       if (res.ok) router.refresh();

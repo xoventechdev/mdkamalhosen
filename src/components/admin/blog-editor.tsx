@@ -22,8 +22,8 @@ import { blogPostSchema, type BlogPostInput } from "@/lib/schemas";
 import { readingMinutes, slugify, formatDate } from "@/lib/utils";
 
 export interface BlogEditorProps {
-  initial: BlogPostInput & { id: number };
-  availableTags: Array<{ id: number; name: string; slug: string }>;
+  initial: BlogPostInput & { id: string };
+  availableTags: Array<{ id: string; name: string; slug: string }>;
 }
 
 export function BlogEditor({ initial, availableTags }: BlogEditorProps) {
@@ -33,10 +33,10 @@ export function BlogEditor({ initial, availableTags }: BlogEditorProps) {
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [tagInput, setTagInput] = useState("");
-  const [tags, setTags] = useState<Array<{ id: number; name: string; slug: string }>>(
+  const [tags, setTags] = useState<Array<{ id: string; name: string; slug: string }>>(
     availableTags,
   );
-  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   const {
     register,
@@ -168,7 +168,7 @@ export function BlogEditor({ initial, availableTags }: BlogEditorProps) {
     }
   }
 
-  function toggleTag(id: number) {
+  function toggleTag(id: string) {
     const next = selectedTagIds.includes(id)
       ? selectedTagIds.filter((x) => x !== id)
       : [...selectedTagIds, id];

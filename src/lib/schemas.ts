@@ -2,6 +2,11 @@ import { z } from "zod";
 
 // All schemas share: trim, no empty strings, safe defaults. The server is
 // the source of truth; client-side form validation is for UX only.
+//
+// After the Mongo migration primary keys are ObjectId strings. Schemas that
+// accept an `id` therefore validate it as a non-empty string instead of
+// coercing a number — this keeps the form layer's `<input name="id">`
+// unchanged while allowing ObjectIds to flow through untouched.
 
 const trimmedString = (max: number) =>
   z
@@ -29,6 +34,21 @@ const requiredDateInput = z
   .regex(/^\d{4}-\d{2}-\d{2}/, "Use YYYY-MM-DD");
 
 const intFromString = z.coerce.number().int();
+
+/**
+ * ObjectId string id: a 24-char hex string. Optional in create schemas,
+ * required in update schemas. We keep the validation lax (any non-empty
+ * string up to 64 chars) to allow human-readable slugs or whatever shape
+ * the id is in, while still rejecting obvious garbage.
+ */
+const objectIdLike = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[A-Za-z0-9_-]+$/, "Invalid id");
+
+const idInput = objectIdLike.optional();
+const idInputRequired = objectIdLike;
 
 // ---------------------------------------------------------------------------
 // Profile (singleton)
@@ -60,7 +80,7 @@ export type ProfileOutput = z.output<typeof profileSchema>;
 // ---------------------------------------------------------------------------
 export const experienceSchema = z
   .object({
-    id: z.number().int().optional(),
+    id: idInput,
     company: trimmedString(160),
     role: trimmedString(160),
     country: trimmedString(80),
@@ -84,7 +104,7 @@ export type ExperienceOutput = z.output<typeof experienceSchema>;
 // Education
 // ---------------------------------------------------------------------------
 export const educationSchema = z.object({
-  id: z.number().int().optional(),
+  id: idInput,
   degree: trimmedString(200),
   institution: trimmedString(200),
   startYear: intFromString.min(1950).max(2100),
@@ -99,7 +119,7 @@ export type EducationOutput = z.output<typeof educationSchema>;
 // Certification
 // ---------------------------------------------------------------------------
 export const certificationSchema = z.object({
-  id: z.number().int().optional(),
+  id: idInput,
   name: trimmedString(200),
   issuer: trimmedString(200),
   year: intFromString.min(1980).max(2100).optional().or(z.literal("").transform(() => undefined)),
@@ -113,7 +133,7 @@ export type CertificationOutput = z.output<typeof certificationSchema>;
 // Skill groups + skills
 // ---------------------------------------------------------------------------
 export const skillGroupSchema = z.object({
-  id: z.number().int().optional(),
+  id: idInput,
   name: trimmedString(80),
   sortOrder: intFromString.default(0),
 });
@@ -121,8 +141,8 @@ export type SkillGroupInput = z.input<typeof skillGroupSchema>;
 export type SkillGroupOutput = z.output<typeof skillGroupSchema>;
 
 export const skillSchema = z.object({
-  id: z.number().int().optional(),
-  groupId: intFromString,
+  id: idInput,
+  groupId: idInputRequired,
   name: trimmedString(80),
   platform: optionalString(80),
   years: intFromString.min(0).max(80).optional().or(z.literal("").transform(() => undefined)),
@@ -136,7 +156,7 @@ export type SkillOutput = z.output<typeof skillSchema>;
 // Project
 // ---------------------------------------------------------------------------
 export const projectSchema = z.object({
-  id: z.number().int().optional(),
+  id: idInput,
   slug: z
     .string()
     .transform((s) => s.trim().toLowerCase())
@@ -181,7 +201,7 @@ export type ProjectOutput = z.output<typeof projectSchema>;
 // Blog post + tag
 // ---------------------------------------------------------------------------
 export const blogPostSchema = z.object({
-  id: z.number().int().optional(),
+  id: idInput,
   slug: z
     .string()
     .transform((s) => s.trim().toLowerCase())
@@ -200,13 +220,13 @@ export const blogPostSchema = z.object({
   publishedAt: dateInput,
   readingMinutes: intFromString.min(1).max(120).default(1),
   metaDescription: optionalString(400),
-  tagIds: z.array(intFromString).default([]),
+  tagIds: z.array(objectIdLike).default([]),
 });
 export type BlogPostInput = z.input<typeof blogPostSchema>;
 export type BlogPostOutput = z.output<typeof blogPostSchema>;
 
 export const blogTagSchema = z.object({
-  id: z.number().int().optional(),
+  id: idInput,
   name: trimmedString(60),
   slug: z
     .string()
@@ -226,7 +246,7 @@ export type BlogTagOutput = z.output<typeof blogTagSchema>;
 // Message (admin-side updates only)
 // ---------------------------------------------------------------------------
 export const messageUpdateSchema = z.object({
-  id: intFromString,
+  id: objectIdLike,
   read: z.boolean().optional(),
   archived: z.boolean().optional(),
 });
@@ -248,7 +268,7 @@ export type ReorderEntity = z.infer<typeof reorderEntity>;
 
 export const reorderSchema = z.object({
   entity: reorderEntity,
-  id: intFromString,
+  id: objectIdLike,
   direction: z.enum(["up", "down"]),
 });
 export type ReorderInput = z.input<typeof reorderSchema>;
@@ -257,5 +277,5 @@ export type ReorderInput = z.input<typeof reorderSchema>;
 // Action result helper type
 // ---------------------------------------------------------------------------
 export type ActionResult<T = void> =
-  | { ok: true; data: T; id?: number }
+  | { ok: true; data: T; id?: string }
   | { ok: false; error: string };

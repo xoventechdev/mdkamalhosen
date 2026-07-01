@@ -23,7 +23,7 @@ import { educationSchema, type EducationInput } from "@/lib/schemas";
 export interface EducationFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initial?: Partial<EducationInput> & { id?: number };
+  initial?: Partial<EducationInput> & { id?: string };
 }
 
 export function EducationFormDialog({

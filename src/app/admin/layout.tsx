@@ -19,12 +19,11 @@ const nav = [
 // Auth is enforced by middleware (see src/middleware.ts) which:
 // • Has access to the request pathname
 // • Skips the auth check for /admin/login
-// • Redirects every other /admin/* path to /admin/login when no session or
-//   email mismatches ADMIN_EMAIL.
+// • Verifies the HMAC-signed `admin_session` cookie and the email allow-list
+// • Redirects every other /admin/* path to /admin/login on failure
 // Server-side double-check is intentionally not repeated here to avoid an
-// infinite redirect loop on /admin/login itself. RLS in Postgres remains
-// the third defense layer. Every Server Action and admin route handler
-// independently calls requireAdmin() from src/lib/auth.ts.
+// infinite redirect loop on /admin/login itself. Every Server Action and
+// admin route handler independently calls requireAdmin() from src/lib/auth.ts.
 
 export default function AdminLayout({
   children,
@@ -58,7 +57,7 @@ export default function AdminLayout({
           >
             <Settings className="h-4 w-4" /> View public site
           </Link>
-          <form action="/admin/auth/signout" method="post">
+          <form action="/api/admin/logout" method="post">
             <button
               type="submit"
               className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"

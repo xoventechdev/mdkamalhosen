@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { connect, ProjectModel, toClient } from "@/lib/db";
 import { ProjectForm } from "@/components/admin/project-form";
 import type { ProjectInput } from "@/lib/schemas";
 
@@ -12,14 +12,36 @@ interface PageProps {
 }
 
 export default async function AdminProjectEditorPage({ params }: PageProps) {
-  const { id: idStr } = await params;
-  const id = Number(idStr);
-  if (!Number.isInteger(id) || id <= 0) notFound();
+  const { id } = await params;
+  if (!id) notFound();
 
-  const row = await prisma.project.findUnique({ where: { id } });
-  if (!row) notFound();
+  await connect();
+  const doc = await ProjectModel.findById(id).lean();
+  if (!doc) notFound();
+  const row = toClient(doc) as unknown as {
+    id: string;
+    slug: string;
+    title: string;
+    category: ProjectInput["category"];
+    year: number;
+    clientType?: string | null;
+    excerpt: string;
+    coverUrl?: string | null;
+    problem?: string | null;
+    role?: string | null;
+    techStack: string[];
+    challenges?: string | null;
+    solution?: string | null;
+    outcome?: string | null;
+    lessons?: string | null;
+    galleryImages: string[];
+    links?: ProjectInput["links"] | null;
+    featured: boolean;
+    status: ProjectInput["status"];
+    sortOrder: number;
+  };
 
-  const initial: ProjectInput & { id: number } = {
+  const initial: ProjectInput & { id: string } = {
     id: row.id,
     slug: row.slug,
     title: row.title,
@@ -42,8 +64,9 @@ export default async function AdminProjectEditorPage({ params }: PageProps) {
     sortOrder: row.sortOrder,
   };
 
-  const featuredCount = await prisma.project.count({
-    where: { featured: true, status: "published" },
+  const featuredCount = await ProjectModel.countDocuments({
+    featured: true,
+    status: "published",
   });
 
   return (

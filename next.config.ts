@@ -2,16 +2,15 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // Prisma ships native query-engine binaries and performs environment
-  // checks (including a "built on Vercel" check that throws if the
-  // generated client is stale). Bundling it through webpack breaks
-  // both, so we mark it as a server-external package. In Next.js 15
-  // this option was promoted out of `experimental` and must live at
-  // the top level of NextConfig.
-  serverExternalPackages: ["@prisma/client"],
+  // Mongoose pulls in the optional `mongodb` driver and a `bson` tree that
+  // are larger than the ~200 KB budget Next.js prefers to bundle. Marking
+  // it as a server-external package keeps the cold-start penalty modest on
+  // Vercel and avoids webpack trying to bundle a native module.
+  serverExternalPackages: ["mongoose"],
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "*.supabase.co" },
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
+      { protocol: "https", hostname: "*.blob.vercel-storage.com" },
     ],
   },
   experimental: {
@@ -58,7 +57,7 @@ const nextConfig: NextConfig = {
           "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com",
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "font-src 'self' data: https://fonts.gstatic.com",
-          "connect-src 'self' https://*.supabase.co https://va.vercel-insights.com https://vitals.vercel-insights.com",
+          "connect-src 'self' https://*.public.blob.vercel-storage.com https://*.blob.vercel-storage.com https://va.vercel-insights.com https://vitals.vercel-insights.com",
           "frame-ancestors 'none'",
           "form-action 'self'",
           "base-uri 'self'",

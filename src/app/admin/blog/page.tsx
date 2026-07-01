@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus, Pencil } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import {
+  connect,
+  BlogPostModel,
+  BlogTagModel,
+  toClient,
+} from "@/lib/db";
 import {
   Table,
   TableHeader,
@@ -34,10 +39,37 @@ async function newPost() {
 }
 
 export default async function AdminBlogPage() {
-  const rows = await prisma.blogPost.findMany({
-    include: { tags: true },
-    orderBy: [{ updatedAt: "desc" }],
-  });
+  // Manual join: BlogPost embeds `tagIds` instead of an M2M relation.
+  await connect();
+  const postDocs = await BlogPostModel.find({})
+    .sort({ updatedAt: -1 })
+    .lean();
+  const posts = toClient(postDocs) as unknown as Array<{
+    id: string;
+    title: string;
+    slug: string;
+    status: string;
+    publishedAt?: Date | null;
+    tagIds: string[]; // toClient stringifies ObjectId -> string
+  }>;
+  const allTagIds = Array.from(
+    new Set(posts.flatMap((p) => p.tagIds ?? [])),
+  );
+  const tagDocs = allTagIds.length
+    ? await BlogTagModel.find({ _id: { $in: allTagIds } }).lean()
+    : [];
+  const tags = toClient(tagDocs) as unknown as Array<{
+    id: string;
+    name: string;
+    slug: string;
+  }>;
+  const tagById = new Map(tags.map((t) => [t.id, t]));
+  const rows = posts.map((p) => ({
+    ...p,
+    tags: (p.tagIds ?? [])
+      .map((id) => tagById.get(id))
+      .filter((t): t is (typeof tags)[number] => Boolean(t)),
+  }));
 
   return (
     <div className="space-y-6">

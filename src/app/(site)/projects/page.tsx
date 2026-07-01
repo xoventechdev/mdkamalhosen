@@ -97,7 +97,14 @@ const projects = [
 
 async function loadProjects(): Promise<ProjectCardData[]> {
   try {
-    const rows = await getPublishedProjects();
+    const rows = (await getPublishedProjects()) as unknown as Array<{
+      slug: string;
+      title: string;
+      excerpt: string;
+      category: string;
+      year: number;
+      techStack: string[];
+    }>;
     if (rows.length === 0) return projects;
     return rows.map((p) => ({
       slug: p.slug,

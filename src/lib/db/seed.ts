@@ -1,48 +1,66 @@
-import { PrismaClient, ProjectCategory, ProjectStatus, BlogStatus } from "@prisma/client";
+import { Types } from "mongoose";
+import {
+  connect,
+  disconnect,
+  ProfileModel,
+  ExperienceModel,
+  EducationModel,
+  CertificationModel,
+  SkillGroupModel,
+  SkillModel,
+  ProjectModel,
+  BlogPostModel,
+  BlogTagModel,
+} from "@/lib/db";
 
-const prisma = new PrismaClient();
+const PROFILE_ID = new Types.ObjectId("507f1f77bcf86cd799439011");
 
 // ---------------------------------------------------------------------------
 // Idempotent seed loader. Re-run any time: uses upsert keyed on natural keys.
 // Mirrors plan/05_CONTENT_MAPPING.md. CV facts win over ai-context where they
 // disagree. Never seeds confidential/private data (plan/09_SECURITY_PRIVACY.md).
+//
+// All primary keys are ObjectId strings (MongoDB). The Profile singleton has
+// the fixed id above so the rest of the codebase can keep using
+// `ProfileModel.findById(PROFILE_ID)` lookups unchanged.
 // ---------------------------------------------------------------------------
 
 async function seedProfile() {
-  await prisma.profile.upsert({
-    where: { id: 1 },
-    create: {
-      id: 1,
-      name: "Md Kamal Hosen",
-      role: "Building Management System Engineer",
-      tagline:
-        "Building Management System Engineer commissioning HVAC plants and shipping the software that runs them.",
-      location: "Riyadh, Saudi Arabia",
-      relocate: true,
-      email: "mdkamalhosennn@gmail.com",
-      phone: "+966 58 347 1377",
-      linkedinUrl: "https://linkedin.com/in/mdkamalhosennn",
-      githubUrl: null,
-      whatsapp: "+966 58 347 1377",
-      summary:
-        "Building Management System (BMS) Engineer with over 5 years of international experience in HVAC automation, smart building technologies, and large-scale system commissioning. Combines a background in electrical engineering with computer science and software development skills to bridge IT and OT environments in modern smart buildings. Experienced in Honeywell Alerton and Tridium Niagara 4 platforms with strong expertise in BACnet and Modbus integrations. Proven ability to commission complex BMS networks, optimise energy performance, and deliver reliable automation solutions at King Abdullah Financial District (KAFD).",
-      mission:
-        "To become an internationally recognised Building Automation Engineer while combining software engineering and AI to build smarter buildings.",
-      philosophy:
-        "I don't develop software simply because I enjoy coding. I build software to solve engineering problems — attendance systems, resume builders, IoT dashboards, building automation tools, AI-assisted applications. Future work moves toward Cloud BMS, Digital Twin, Predictive Maintenance, and AI-assisted commissioning.",
-      values: [
-        "Commission with proof",
-        "Document before deploying",
-        "Automate repetitive engineering",
-        "Anonymise confidential data",
-        "Bridge IT and OT",
-      ],
-      availability: "open",
-      avatarUrl: null,
-      cvPdfUrl: "/cv/kamal-hosen-cv.pdf",
+  await ProfileModel.findByIdAndUpdate(
+    PROFILE_ID,
+    {
+      $set: {
+        name: "Md Kamal Hosen",
+        role: "Building Management System Engineer",
+        tagline:
+          "Building Management System Engineer commissioning HVAC plants and shipping the software that runs them.",
+        location: "Riyadh, Saudi Arabia",
+        relocate: true,
+        email: "mdkamalhosennn@gmail.com",
+        phone: "+966 58 347 1377",
+        linkedinUrl: "https://linkedin.com/in/mdkamalhosennn",
+        githubUrl: null,
+        whatsapp: "+966 58 347 1377",
+        summary:
+          "Building Management System (BMS) Engineer with over 5 years of international experience in HVAC automation, smart building technologies, and large-scale system commissioning. Combines a background in electrical engineering with computer science and software development skills to bridge IT and OT environments in modern smart buildings. Experienced in Honeywell Alerton and Tridium Niagara 4 platforms with strong expertise in BACnet and Modbus integrations. Proven ability to commission complex BMS networks, optimise energy performance, and deliver reliable automation solutions at King Abdullah Financial District (KAFD).",
+        mission:
+          "To become an internationally recognised Building Automation Engineer while combining software engineering and AI to build smarter buildings.",
+        philosophy:
+          "I don't develop software simply because I enjoy coding. I build software to solve engineering problems — attendance systems, resume builders, IoT dashboards, building automation tools, AI-assisted applications. Future work moves toward Cloud BMS, Digital Twin, Predictive Maintenance, and AI-assisted commissioning.",
+        values: [
+          "Commission with proof",
+          "Document before deploying",
+          "Automate repetitive engineering",
+          "Anonymise confidential data",
+          "Bridge IT and OT",
+        ],
+        availability: "open",
+        avatarUrl: null,
+        cvPdfUrl: "/cv/kamal-hosen-cv.pdf",
+      },
     },
-    update: {},
-  });
+    { upsert: true },
+  );
 }
 
 const experiences: Array<{
@@ -133,21 +151,26 @@ const experiences: Array<{
 
 async function seedExperiences() {
   for (const exp of experiences) {
-    await prisma.experience.upsert({
-      where: {
-        company_role_startDate: {
-          company: exp.company,
-          role: exp.role,
-          startDate: new Date(exp.startDate),
+    await ExperienceModel.findOneAndUpdate(
+      {
+        company: exp.company,
+        role: exp.role,
+        startDate: new Date(exp.startDate),
+      },
+      {
+        $set: {
+          country: exp.country,
+          city: exp.city,
+          endDate: exp.endDate ? new Date(exp.endDate) : null,
+          current: exp.current,
+          bullets: exp.bullets,
+          stack: exp.stack,
+          marqueeProject: exp.marqueeProject,
+          sortOrder: exp.sortOrder,
         },
       },
-      create: {
-        ...exp,
-        startDate: new Date(exp.startDate),
-        endDate: exp.endDate ? new Date(exp.endDate) : null,
-      },
-      update: {},
-    });
+      { upsert: true },
+    );
   }
 }
 
@@ -172,17 +195,11 @@ const education = [
 
 async function seedEducation() {
   for (const e of education) {
-    await prisma.education.upsert({
-      where: {
-        degree_institution_startYear: {
-          degree: e.degree,
-          institution: e.institution,
-          startYear: e.startYear,
-        },
-      },
-      create: e,
-      update: {},
-    });
+    await EducationModel.findOneAndUpdate(
+      { degree: e.degree, institution: e.institution, startYear: e.startYear },
+      { $set: { endYear: e.endYear ?? null, status: e.status, sortOrder: e.sortOrder } },
+      { upsert: true },
+    );
   }
 }
 
@@ -197,11 +214,11 @@ const certifications: Array<{ name: string; issuer: string; year: number | null;
 
 async function seedCertifications() {
   for (const c of certifications) {
-    await prisma.certification.upsert({
-      where: { name_issuer: { name: c.name, issuer: c.issuer } },
-      create: c,
-      update: {},
-    });
+    await CertificationModel.findOneAndUpdate(
+      { name: c.name, issuer: c.issuer },
+      { $set: { year: c.year, sortOrder: c.sortOrder } },
+      { upsert: true },
+    );
   }
 }
 
@@ -277,36 +294,36 @@ async function seedSkills() {
   for (let gi = 0; gi < skillGroups.length; gi++) {
     const group = skillGroups[gi];
     if (!group) continue;
-    const groupRow = await prisma.skillGroup.upsert({
-      where: { name: group.name },
-      create: { name: group.name, sortOrder: gi },
-      update: { sortOrder: gi },
-    });
+    const groupDoc = await SkillGroupModel.findOneAndUpdate(
+      { name: group.name },
+      { $set: { sortOrder: gi }, $setOnInsert: { name: group.name } },
+      { upsert: true, new: true },
+    );
+    if (!groupDoc) continue;
     for (let si = 0; si < group.skills.length; si++) {
       const skill = group.skills[si];
       if (!skill) continue;
-      const existing = await prisma.skill.findFirst({
-        where: { groupId: groupRow.id, name: skill.name },
-      });
+      const existing = await SkillModel.findOne({
+        groupId: groupDoc._id,
+        name: skill.name,
+      }).lean();
       if (existing) continue;
-      await prisma.skill.create({
-        data: {
-          groupId: groupRow.id,
-          name: skill.name,
-          platform: skill.platform ?? null,
-          years: skill.years ?? null,
-          level: skill.level ?? 3,
-          sortOrder: si,
-        },
+      await SkillModel.create({
+        groupId: groupDoc._id,
+        name: skill.name,
+        platform: skill.platform ?? null,
+        years: skill.years ?? null,
+        level: skill.level ?? 3,
+        sortOrder: si,
       });
     }
   }
 }
 
-const projects: Array<{
+type ProjectSeed = {
   slug: string;
   title: string;
-  category: ProjectCategory;
+  category: "bms" | "software" | "iot" | "android";
   year: number;
   clientType: string;
   excerpt: string;
@@ -318,13 +335,15 @@ const projects: Array<{
   outcome: string;
   lessons: string;
   featured: boolean;
-  status: ProjectStatus;
+  status: "draft" | "published";
   sortOrder: number;
-}> = [
+};
+
+const projects: ProjectSeed[] = [
   {
     slug: "kafd-bms-commissioning",
     title: "KAFD District — BMS Commissioning",
-    category: ProjectCategory.bms,
+    category: "bms",
     year: 2025,
     clientType: "Commercial district (anonymised)",
     excerpt:
@@ -341,13 +360,13 @@ const projects: Array<{
       "(Owner to expand) Improved system reliability and energy performance metrics.",
     lessons: "(Owner to expand)",
     featured: true,
-    status: ProjectStatus.published,
+    status: "published",
     sortOrder: 0,
   },
   {
     slug: "red-palace-bms",
     title: "Red Palace — BMS Integration",
-    category: ProjectCategory.bms,
+    category: "bms",
     year: 2024,
     clientType: "Heritage commercial site (anonymised)",
     excerpt:
@@ -360,13 +379,13 @@ const projects: Array<{
     outcome: "(Owner to expand)",
     lessons: "(Owner to expand)",
     featured: false,
-    status: ProjectStatus.draft,
+    status: "draft",
     sortOrder: 1,
   },
   {
     slug: "resume-builder",
     title: "Resume Builder",
-    category: ProjectCategory.software,
+    category: "software",
     year: 2024,
     clientType: "Personal project",
     excerpt:
@@ -383,13 +402,13 @@ const projects: Array<{
     lessons:
       "Schema design pays back twice — once for input UX, once for output formats.",
     featured: true,
-    status: ProjectStatus.published,
+    status: "published",
     sortOrder: 2,
   },
   {
     slug: "attendance-system",
     title: "Attendance System",
-    category: ProjectCategory.software,
+    category: "software",
     year: 2023,
     clientType: "Personal project",
     excerpt:
@@ -402,13 +421,13 @@ const projects: Array<{
     outcome: "(Owner to expand)",
     lessons: "(Owner to expand)",
     featured: false,
-    status: ProjectStatus.draft,
+    status: "draft",
     sortOrder: 3,
   },
   {
     slug: "iot-dashboard",
     title: "IoT Dashboard",
-    category: ProjectCategory.iot,
+    category: "iot",
     year: 2023,
     clientType: "Personal project",
     excerpt:
@@ -421,13 +440,13 @@ const projects: Array<{
     outcome: "(Owner to expand)",
     lessons: "(Owner to expand)",
     featured: false,
-    status: ProjectStatus.draft,
+    status: "draft",
     sortOrder: 4,
   },
   {
     slug: "android-100k-downloads",
     title: "Android App — 100K+ Downloads",
-    category: ProjectCategory.android,
+    category: "android",
     year: 2022,
     clientType: "Google Play",
     excerpt:
@@ -441,18 +460,18 @@ const projects: Array<{
       "100,000+ installs on Google Play. (Owner to supply additional anonymised metrics.)",
     lessons: "(Owner to expand)",
     featured: true,
-    status: ProjectStatus.draft,
+    status: "draft",
     sortOrder: 5,
   },
 ];
 
 async function seedProjects() {
   for (const p of projects) {
-    await prisma.project.upsert({
-      where: { slug: p.slug },
-      create: p,
-      update: {},
-    });
+    await ProjectModel.findOneAndUpdate(
+      { slug: p.slug },
+      { $set: { ...p } },
+      { upsert: true },
+    );
   }
 }
 
@@ -470,7 +489,7 @@ const blogPosts: Array<{
   title: string;
   excerpt: string;
   bodyMd: string;
-  status: BlogStatus;
+  status: "draft" | "published";
   tags: string[];
 }> = [
   {
@@ -479,7 +498,7 @@ const blogPosts: Array<{
     excerpt:
       "A practical comparison of BACnet and Modbus for building automation engineers.",
     bodyMd: `# BACnet vs Modbus\n\nA quick reference for commissioning engineers.\n\n## TL;DR\n\nBACnet is object-oriented and built for buildings. Modbus is register-oriented and built for industrial PLCs. Both talk over IP and serial. On most sites you use both.\n\n## Protocol shape\n\n|  | BACnet | Modbus |\n|---|---|---|\n| Unit | Object (analog-input, binary-output...) | Register (coil, holding) |\n| Address | device-instance + object-identifier | slave-id + register address |\n| Transport | IP, MSTP, ARCNET | RTU, TCP |\n| Discovery | who-is / i-am | none |\n\n## Where I use each\n\n- BACnet/IP for supervisor-to-controller traffic on Niagara 4 sites.\n- BACnet MSTP for controller-to-controller on serial loops.\n- Modbus RTU for third-party power meters, chillers, and VFDs that only expose registers.\n- Modbus TCP for newer equipment exposing registers over Ethernet.\n\n## Lesson\n\nIf a device only speaks Modbus, map its registers into BACnet objects at the supervisor — your operator UI gets a single coherent view.`,
-    status: BlogStatus.draft,
+    status: "draft",
     tags: ["BMS", "Protocols"],
   },
   {
@@ -488,7 +507,7 @@ const blogPosts: Array<{
     excerpt:
       "An anonymised commissioning checklist for a Tridium Niagara 4 deployment.",
     bodyMd: `# Commissioning a Niagara 4 Site\n\nA working checklist. Anonymised — strip out any client-identifying data before adapting.\n\n## Pre-commissioning\n\n- Network diagram approved\n- Controller IPs assigned, no duplicates\n- Supervisor licensed and reachable\n- BACnet device instances unique across the network\n\n## Network bring-up\n\n- Ping each JACE from the supervisor.\n- Confirm MSTP loop wiring, baud, max_info_frames.\n- Walk the BACnet who-is; expect an i-am from every controller.\n\n## Point verification\n\n- For each controller, verify each input against a hand meter.\n- For each output, command and observe the actuator.\n- Record deviations in the commissioning sheet.\n\n## Sequences of operation\n\n- Verify schedule, setpoint, interlocks, alarms.\n- Force each alarm and confirm the supervisor reports it.\n\n## Handover\n\n- As-built graphics published.\n- Anonymised trend logs exporting.\n- Operator training delivered.`,
-    status: BlogStatus.draft,
+    status: "draft",
     tags: ["BMS", "Niagara", "Commissioning"],
   },
   {
@@ -497,49 +516,45 @@ const blogPosts: Array<{
     excerpt:
       "AI is built into my workflow — not bolted on. Here is where it actually helps and where it doesn't.",
     bodyMd: `# How I Use AI in My Engineering Workflow\n\nAI is integrated into my day-to-day engineering practice across five areas: planning, documentation, coding, problem-solving, and research.\n\n## Where it actually helps\n\n- **Planning** — turning a vague brief into a sequenced work breakdown.\n- **Documentation** — first drafts of commissioning reports and SOPs.\n- **Coding** — boilerplate and refactors where the spec is clear.\n- **Problem-solving** — second opinion on BMS integration faults.\n- **Research** — faster onboarding on new protocols and equipment.\n\n## Where it doesn't\n\n- Anything that needs ground truth from the site. The model does not stand in front of the panel. I verify against the actual controller, the actual wiring, the actual trend log.\n\n## Rule I follow\n\nIf I would not defend the work in front of a consultant, I do not ship it. AI is a tool; the engineer signs the work.`,
-    status: BlogStatus.draft,
+    status: "draft",
     tags: ["AI", "Workflow"],
   },
 ];
 
 async function seedBlog() {
   for (const t of blogTags) {
-    await prisma.blogTag.upsert({
-      where: { slug: t.slug },
-      create: t,
-      update: {},
-    });
+    await BlogTagModel.findOneAndUpdate(
+      { slug: t.slug },
+      { $set: { name: t.name }, $setOnInsert: { slug: t.slug } },
+      { upsert: true },
+    );
   }
+  // Build a name → id map so each post can embed tagIds.
+  const allTagDocs = await BlogTagModel.find({}).select({ _id: 1, name: 1 }).lean();
+  const tagIdByName = new Map(
+    allTagDocs.map((t) => [t.name as string, t._id]),
+  );
+
   for (const post of blogPosts) {
-    const existing = await prisma.blogPost.findUnique({
-      where: { slug: post.slug },
-    });
+    const existing = await BlogPostModel.findOne({ slug: post.slug }).lean();
     if (existing) continue;
-    const created = await prisma.blogPost.create({
-      data: {
-        slug: post.slug,
-        title: post.title,
-        excerpt: post.excerpt,
-        bodyMd: post.bodyMd,
-        status: post.status,
-        publishedAt: post.status === BlogStatus.published ? new Date() : null,
-      },
+    const tagIds = post.tags
+      .map((name) => tagIdByName.get(name))
+      .filter((id): id is Types.ObjectId => Boolean(id));
+    await BlogPostModel.create({
+      slug: post.slug,
+      title: post.title,
+      excerpt: post.excerpt,
+      bodyMd: post.bodyMd,
+      status: post.status,
+      publishedAt: post.status === "published" ? new Date() : null,
+      tagIds,
     });
-    for (const tagName of post.tags) {
-      const tag = await prisma.blogTag.findUnique({
-        where: { name: tagName },
-      });
-      if (tag) {
-        await prisma.blogPost.update({
-          where: { id: created.id },
-          data: { tags: { connect: { id: tag.id } } },
-        });
-      }
-    }
   }
 }
 
 async function main() {
+  await connect();
   console.log("→ seeding profile…");
   await seedProfile();
   console.log("→ seeding experiences…");
@@ -555,13 +570,11 @@ async function main() {
   console.log("→ seeding blog…");
   await seedBlog();
   console.log("✓ done");
+  await disconnect();
 }
 
 main()
   .catch((e) => {
     console.error(e);
     process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
   });

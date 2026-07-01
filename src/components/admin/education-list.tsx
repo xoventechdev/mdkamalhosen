@@ -21,7 +21,7 @@ import { deleteEducation, reorder } from "@/server/actions";
 import type { EducationInput } from "@/lib/schemas";
 
 export interface EducationRow {
-  id: number;
+  id: string;
   degree: string;
   institution: string;
   startYear: number;
@@ -41,7 +41,7 @@ export function EducationList({ rows }: EducationListProps) {
   const [deleting, setDeleting] = useState<EducationRow | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function move(id: number, dir: "up" | "down") {
+  function move(id: string, dir: "up" | "down") {
     startTransition(async () => {
       const res = await reorder({ entity: "education", id, direction: dir });
       if (res.ok) router.refresh();

@@ -1,11 +1,13 @@
-import { prisma } from "@/lib/prisma";
+import { getProfile } from "@/server/queries";
 import { ProfileForm } from "@/components/admin/profile-form";
 import type { ProfileInput } from "@/lib/schemas";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminProfilePage() {
-  const row = await prisma.profile.findUnique({ where: { id: 1 } });
+  const row = (await getProfile()) as unknown as
+    | (Partial<ProfileInput> & { values?: string[] })
+    | null;
 
   const initial: ProfileInput = {
     name: row?.name ?? "",

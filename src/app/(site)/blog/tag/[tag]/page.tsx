@@ -18,7 +18,7 @@ interface PageProps {
 
 export async function generateStaticParams() {
   try {
-    const tags = await getAllTags();
+    const tags = (await getAllTags()) as unknown as Array<{ slug: string }>;
     return tags.map((t) => ({ tag: t.slug }));
   } catch {
     return [];
@@ -27,7 +27,10 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { tag } = await params;
-  const all = await getAllTags().catch(() => []);
+  const all = ((await getAllTags().catch(() => [])) as unknown) as Array<{
+    slug: string;
+    name: string;
+  }>;
   const found = all.find((t) => t.slug === tag);
   const name = found?.name ?? tag;
   const title = `#${name}`;
@@ -60,8 +63,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BlogTagPage({ params }: PageProps) {
   const { tag } = await params;
-  const posts = await getPostsByTag(tag).catch(() => []);
-  const allTags = await getAllTags().catch(() => []);
+  const posts = ((await getPostsByTag(tag).catch(() => [])) as unknown) as Array<{
+    slug: string;
+    title: string;
+    excerpt?: string | null;
+    publishedAt?: Date | null;
+    readingMinutes: number;
+    tags: Array<{ id: string; slug: string; name: string }>;
+  }>;
+  const allTags = ((await getAllTags().catch(() => [])) as unknown) as Array<{
+    slug: string;
+    name: string;
+  }>;
   const current = allTags.find((t) => t.slug === tag);
   if (!current) notFound();
 

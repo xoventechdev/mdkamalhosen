@@ -20,7 +20,7 @@ import { deleteCertification, reorder } from "@/server/actions";
 import type { CertificationInput } from "@/lib/schemas";
 
 export interface CertificationRow {
-  id: number;
+  id: string;
   name: string;
   issuer: string;
   year: number | null;
@@ -39,7 +39,7 @@ export function CertificationsList({ rows }: CertificationsListProps) {
   const [deleting, setDeleting] = useState<CertificationRow | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function move(id: number, dir: "up" | "down") {
+  function move(id: string, dir: "up" | "down") {
     startTransition(async () => {
       const res = await reorder({ entity: "certification", id, direction: dir });
       if (res.ok) router.refresh();

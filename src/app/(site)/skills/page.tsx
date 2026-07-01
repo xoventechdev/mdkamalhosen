@@ -127,7 +127,15 @@ const defaultGroupColor = { color: "text-accent", accent: "from-accent" };
 
 async function loadGroups() {
   try {
-    const rows = await getSkillGroups();
+    const rows = (await getSkillGroups()) as unknown as Array<{
+      name: string;
+      skills: Array<{
+        name: string;
+        platform?: string | null;
+        years?: number | null;
+        level: number;
+      }>;
+    }>;
     if (rows.length === 0) return groups;
     return rows.map((g) => {
       const colors = groupColorByName[g.name] ?? defaultGroupColor;

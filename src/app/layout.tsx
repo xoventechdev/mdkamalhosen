@@ -117,7 +117,17 @@ export const metadata: Metadata = {
 async function loadSiteJsonLd() {
   // Best-effort: profile may be empty in dev before seed runs.
   try {
-    const profile = await getProfile();
+    const profile = (await getProfile()) as unknown as {
+      name: string;
+      email: string;
+      phone?: string | null;
+      location: string;
+      avatarUrl?: string | null;
+      summary: string;
+      linkedinUrl?: string | null;
+      githubUrl?: string | null;
+      role: string;
+    } | null;
     if (!profile) {
       return combineJsonLd(
         personJsonLd({

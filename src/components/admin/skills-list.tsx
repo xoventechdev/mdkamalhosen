@@ -29,7 +29,7 @@ import { SkillFormDialog } from "./skill-form-dialog";
 import { cn } from "@/lib/utils";
 
 export interface SkillItem {
-  id: number;
+  id: string;
   name: string;
   platform: string | null;
   years: number | null;
@@ -38,7 +38,7 @@ export interface SkillItem {
 }
 
 export interface SkillGroupRow {
-  id: number;
+  id: string;
   name: string;
   sortOrder: number;
   skills: SkillItem[];
@@ -50,8 +50,8 @@ export interface SkillsListProps {
 
 export function SkillsList({ groups }: SkillsListProps) {
   const router = useRouter();
-  const [addingTo, setAddingTo] = useState<number | null>(null);
-  const [editing, setEditing] = useState<{ skill: SkillItem; groupId: number } | null>(null);
+  const [addingTo, setAddingTo] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ skill: SkillItem; groupId: string } | null>(null);
   const [deletingSkill, setDeletingSkill] = useState<SkillItem | null>(null);
   const [deletingGroup, setDeletingGroup] = useState<SkillGroupRow | null>(null);
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
@@ -59,7 +59,7 @@ export function SkillsList({ groups }: SkillsListProps) {
   const [groupPending, startGroupTransition] = useTransition();
   const [pending, startTransition] = useTransition();
 
-  function moveGroup(id: number, dir: "up" | "down") {
+  function moveGroup(id: string, dir: "up" | "down") {
     startTransition(async () => {
       const res = await reorder({ entity: "skillGroup", id, direction: dir });
       if (res.ok) router.refresh();
@@ -67,7 +67,7 @@ export function SkillsList({ groups }: SkillsListProps) {
     });
   }
 
-  function moveSkill(id: number, dir: "up" | "down") {
+  function moveSkill(id: string, dir: "up" | "down") {
     startTransition(async () => {
       const res = await reorder({ entity: "skill", id, direction: dir });
       if (res.ok) router.refresh();
@@ -250,13 +250,13 @@ export function SkillsList({ groups }: SkillsListProps) {
       <SkillFormDialog
         open={addingTo !== null}
         onOpenChange={(o) => !o && setAddingTo(null)}
-        groupId={addingTo ?? 0}
+        groupId={addingTo ?? ""}
       />
 
       <SkillFormDialog
         open={!!editing}
         onOpenChange={(o) => !o && setEditing(null)}
-        groupId={editing?.groupId ?? 0}
+        groupId={editing?.groupId ?? ""}
         initial={
           editing
             ? {

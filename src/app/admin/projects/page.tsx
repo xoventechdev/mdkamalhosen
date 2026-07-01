@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus, Star, Pencil } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { connect, ProjectModel, toClient } from "@/lib/db";
 import {
   Table,
   TableHeader,
@@ -37,9 +37,19 @@ async function createNewProject() {
 }
 
 export default async function AdminProjectsPage() {
-  const rows = await prisma.project.findMany({
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-  });
+  await connect();
+  const docs = await ProjectModel.find({})
+    .sort({ sortOrder: 1, createdAt: -1 })
+    .lean();
+  const rows = toClient(docs) as unknown as Array<{
+    id: string;
+    title: string;
+    slug: string;
+    category: string;
+    year: number;
+    status: string;
+    featured: boolean;
+  }>;
 
   return (
     <div className="space-y-6">
@@ -76,7 +86,7 @@ export default async function AdminProjectsPage() {
                   <div className="text-xs text-muted-foreground">{row.slug}</div>
                 </TableCell>
                 <TableCell>
-                  <CategoryBadge category={row.category} />
+                  <CategoryBadge category={row.category as never} />
                 </TableCell>
                 <TableCell>{row.year}</TableCell>
                 <TableCell>

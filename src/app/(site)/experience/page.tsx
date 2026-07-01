@@ -105,7 +105,19 @@ const fallbackRoles = [
 
 async function loadRoles() {
   try {
-    const rows = await getAllExperiences();
+    const rows = (await getAllExperiences()) as unknown as Array<{
+      company: string;
+      role: string;
+      country: string;
+      city?: string | null;
+      startDate: Date;
+      endDate?: Date | null;
+      current: boolean;
+      bullets: string[];
+      stack: string[];
+      marqueeProject?: string | null;
+      sortOrder: number;
+    }>;
     if (rows.length === 0) return fallbackRoles;
     return rows.map((r) => ({
       company: r.company,

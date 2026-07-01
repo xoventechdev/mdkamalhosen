@@ -20,7 +20,7 @@ import { projectSchema, type ProjectInput } from "@/lib/schemas";
 import { slugify } from "@/lib/utils";
 
 export interface ProjectFormProps {
-  initial: ProjectInput & { id: number };
+  initial: ProjectInput & { id: string };
   featuredCount: number;
 }
 

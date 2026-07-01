@@ -7,7 +7,14 @@ import {
   GraduationCap,
   Plus,
 } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import {
+  connect,
+  ProjectModel,
+  BlogPostModel,
+  MessageModel,
+  ActivityLogModel,
+  toClient,
+} from "@/lib/db";
 import {
   Card,
   CardContent,
@@ -22,15 +29,24 @@ import { formatDate } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 async function loadStats() {
-  const [published, drafts, publishedPosts, draftPosts, unreadMessages, recent] =
+  await connect();
+  const [published, drafts, publishedPosts, draftPosts, unreadMessages, recentDocs] =
     await Promise.all([
-      prisma.project.count({ where: { status: "published" } }),
-      prisma.project.count({ where: { status: "draft" } }),
-      prisma.blogPost.count({ where: { status: "published" } }),
-      prisma.blogPost.count({ where: { status: "draft" } }),
-      prisma.message.count({ where: { readAt: null, archived: false } }),
-      prisma.activityLog.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
+      ProjectModel.countDocuments({ status: "published" }),
+      ProjectModel.countDocuments({ status: "draft" }),
+      BlogPostModel.countDocuments({ status: "published" }),
+      BlogPostModel.countDocuments({ status: "draft" }),
+      MessageModel.countDocuments({ readAt: null, archived: false }),
+      ActivityLogModel.find({}).sort({ createdAt: -1 }).limit(10).lean(),
     ]);
+  const recent = toClient(recentDocs) as unknown as Array<{
+    id: string;
+    action: string;
+    entity: string;
+    entityId?: string | null;
+    userEmail: string;
+    createdAt?: Date;
+  }>;
   return { published, drafts, publishedPosts, draftPosts, unreadMessages, recent };
 }
 

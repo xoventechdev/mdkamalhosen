@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { connect, MessageModel } from "@/lib/db";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required").max(120),
@@ -30,16 +30,14 @@ export async function POST(request: NextRequest) {
   const ipPrefix = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   const trimmedIp = ipPrefix ? ipPrefix.slice(0, 24) : null;
 
-  await prisma.message.create({
-    data: {
-      name: data.name,
-      email: data.email,
-      subject: data.subject?.trim() ? data.subject.trim() : null,
-      message: data.message,
-      ipPrefix: trimmedIp,
-    },
+  await connect();
+  await MessageModel.create({
+    name: data.name,
+    email: data.email,
+    subject: data.subject?.trim() ? data.subject.trim() : null,
+    message: data.message,
+    ipPrefix: trimmedIp,
   });
 
-  // Optional SMTP forward — wired in Phase 3 when env is available.
   return NextResponse.json({ ok: true });
 }

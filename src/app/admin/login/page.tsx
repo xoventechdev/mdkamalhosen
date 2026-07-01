@@ -2,7 +2,6 @@
 
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 function LoginInner() {
   const router = useRouter();
@@ -16,19 +15,27 @@ function LoginInner() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const supabase = createSupabaseBrowserClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      setError(error.message);
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        setError(data.error ?? "Sign-in failed");
+        setLoading(false);
+        return;
+      }
+      const redirect = params.get("redirect") ?? "/admin";
+      router.replace(redirect);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error");
       setLoading(false);
-      return;
     }
-    const redirect = params.get("redirect") ?? "/admin";
-    router.replace(redirect);
-    router.refresh();
   }
 
   return (
