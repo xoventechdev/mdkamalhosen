@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="K">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0b1224"/>
+      <stop offset="1" stop-color="#070b1a"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="64" height="64" rx="14" ry="14" fill="url(#bg)"/>
+  <!-- Subtle accent ring so the favicon reads at 16x16 -->
+  <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="12.75" ry="12.75"
+        fill="none" stroke="#2563eb" stroke-opacity="0.35" stroke-width="1.25"/>
+  <!-- Vertical bar of the K -->
+  <rect x="18" y="16" width="6" height="32" rx="1.5" fill="#2563eb"/>
+  <!-- Upper diagonal of the K (top-right to mid) -->
+  <polygon points="24,32 42,16 47,16 30,32" fill="#2563eb"/>
+  <!-- Lower diagonal of the K (mid to bottom-right) -->
+  <polygon points="30,32 47,48 42,48 24,32" fill="#2563eb"/>
+</svg>

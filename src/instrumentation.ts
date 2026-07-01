@@ -7,16 +7,18 @@
  *
  * On Vercel the platform resolver already works, so this is a no-op in
  * production — but it costs nothing to run.
+ *
+ * `src/lib/db/dns.cjs` is a CommonJS file that uses Node's
+ * `require("dns")` directly. The Next.js server webpack config marks
+ * Node built-ins as externals, so the require is satisfied by Node at
+ * runtime and is not parsed by webpack — avoiding the
+ * `UnhandledSchemeError` that a static `import ... from "node:dns"`
+ * would produce. The import below is a plain local-path import with no
+ * `node:` scheme, so the static analyzer is happy.
  */
+import { configureDns } from "@/lib/db/dns.cjs";
+
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
-  // Use a runtime `require` instead of a static `import` so webpack does
-  // not try to walk the import graph during the edge-runtime build.
-  // The edge runtime bundle never executes this branch (it returns
-  // above), but webpack still parses the source statically.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { configureDns } = require("./lib/db/dns") as {
-    configureDns: () => void;
-  };
   configureDns();
 }

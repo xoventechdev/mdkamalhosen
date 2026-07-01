@@ -9,7 +9,9 @@
       "Bash(node:*)",
       "Bash(/tmp/dollar2.js:*)",
       "Bash(ls:*)",
-      "WebFetch(domain:www.prisma.io)"
+      "WebFetch(domain:www.prisma.io)",
+      "Bash(xargs grep:*)",
+      "Bash(find /h/Personal/Job/Me/mdkamalhosen/src/app/api -name *.ts -type f)"
     ]
   }
 }

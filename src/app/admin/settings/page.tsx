@@ -1,4 +1,5 @@
 import { SettingsClient } from "@/components/admin/settings-client";
+import { ChangePasswordCard } from "@/components/admin/change-password-card";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +15,12 @@ export default function AdminSettingsPage() {
     process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS,
   );
   return (
-    <SettingsClient
-      revalidateSecretMasked={revalidateSecretMasked}
-      smtpConfigured={smtpConfigured}
-    />
+    <div className="space-y-6">
+      <SettingsClient
+        revalidateSecretMasked={revalidateSecretMasked}
+        smtpConfigured={smtpConfigured}
+      />
+      <ChangePasswordCard />
+    </div>
   );
 }

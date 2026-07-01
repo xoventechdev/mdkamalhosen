@@ -63,11 +63,16 @@ export function CertificationFormDialog({
 
   function onSubmit(values: CertificationInput) {
     startTransition(async () => {
-      const res = values.id
-        ? await updateCertification({ id: values.id, ...values })
+      // Branch on `initial?.id` (the record we're editing) rather than
+      // `values.id`, which is not part of the form fields. Without this,
+      // every edit silently falls through to createCertification, which
+      // then collides with the unique index and surfaces as a duplicate-
+      // key error to the user.
+      const res = initial?.id
+        ? await updateCertification({ id: initial.id, ...values })
         : await createCertification(values);
       if (res.ok) {
-        toast.success(values.id ? "Certification updated." : "Certification created.");
+        toast.success(initial?.id ? "Certification updated." : "Certification created.");
         onOpenChange(false);
       } else {
         toast.error(res.error);

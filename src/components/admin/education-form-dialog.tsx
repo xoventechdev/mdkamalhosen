@@ -66,11 +66,16 @@ export function EducationFormDialog({
 
   function onSubmit(values: EducationInput) {
     startTransition(async () => {
-      const res = values.id
-        ? await updateEducation({ id: values.id, ...values })
+      // Branch on `initial?.id` (the record we're editing) rather than
+      // `values.id`, which is not part of the form fields. Without this,
+      // every edit silently falls through to createEducation, which then
+      // collides with the unique index and surfaces as a duplicate-key
+      // error to the user.
+      const res = initial?.id
+        ? await updateEducation({ id: initial.id, ...values })
         : await createEducation(values);
       if (res.ok) {
-        toast.success(values.id ? "Education updated." : "Education created.");
+        toast.success(initial?.id ? "Education updated." : "Education created.");
         onOpenChange(false);
       } else {
         toast.error(res.error);

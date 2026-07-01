@@ -1,3 +1,7 @@
+// `tsx` does not auto-load `.env`; Next.js does (for dev/build/start).
+// The seed scripts are run outside Next.js, so we load env ourselves.
+import "dotenv/config";
+
 import { Types } from "mongoose";
 import {
   connect,

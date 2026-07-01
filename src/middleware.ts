@@ -5,35 +5,55 @@ import {
   verifySession,
 } from "@/lib/admin-session";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "mdkamalhosennn@gmail.com";
-
 /**
- * Replaces the Supabase-based middleware. We verify the HMAC-signed cookie
- * and gate /admin/* routes (except /admin/login itself). On failure, redirect
- * to /admin/login with a `redirect` query so the user comes back where they
- * were after authenticating.
+ * Gates `/admin/*` *page* navigations by verifying the HMAC-signed
+ * session cookie. The middleware is Edge-runtime, so it cannot import
+ * Mongoose (which uses `eval` / `new Function` in its browser shim).
+ * The sessionVersion cross-check against the live user row is
+ * therefore enforced inside `requireAdmin()` (Node runtime) and
+ * inside admin Server Components via `currentAdmin()`. A user with a
+ * stale cookie may render one page before being redirected to
+ * /admin/login — that's the documented trade-off for keeping the
+ * middleware Edge-safe.
+ *
+ * Why API routes are NOT matched by this middleware:
+ *   Each `/api/admin/*` route handler is responsible for calling
+ *   `requireAdmin()` itself. The auth endpoints (login, logout,
+ *   forgot-password, reset-password) deliberately do not call
+ *   `requireAdmin()` because they ARE the auth surface. Routing API
+ *   requests through this middleware would cause an unauthenticated
+ *   POST to /api/admin/login to be redirected to the login page,
+ *   which the browser's fetch() would then try to parse as JSON and
+ *   fail with "Failed to fetch".
+ *
+ * Public admin pages (the ones with their own rate limiting or no
+ * sensitive content) are listed explicitly so they skip the cookie
+ * check entirely.
  */
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // Allow the login route + the static login assets without redirect loops.
-  if (path === "/admin/login") return NextResponse.next();
+  // Public admin pages — no auth required.
+  const publicPaths = [
+    "/admin/login",
+    "/admin/forgot-password",
+    "/admin/reset-password",
+  ];
+  if (publicPaths.includes(path)) return NextResponse.next();
 
-  // Only gate /admin routes — everything else passes through untouched.
-  if (!path.startsWith("/admin")) return NextResponse.next();
+  // Only gate /admin pages — API routes are handled in their own
+  // route handlers (see comment above). Everything else passes
+  // through untouched.
+  if (!path.startsWith("/admin/")) return NextResponse.next();
 
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const payload = verifySession(token);
-
-  if (!payload || payload.email !== ADMIN_EMAIL) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/admin/login";
-    url.searchParams.set("redirect", path);
-    return NextResponse.redirect(url);
+  const payload = await verifySession(token);
+  if (!payload) {
+    return redirectToLogin(request, path);
   }
 
-  // Refresh cookie expiry on every successful admin request so an active
-  // user does not get logged out mid-session.
+  // Refresh cookie expiry on every successful admin request so an
+  // active user does not get logged out mid-session.
   const opts = sessionCookieOptions();
   const response = NextResponse.next({ request });
   response.cookies.set(opts.name, token!, {
@@ -48,6 +68,15 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
+function redirectToLogin(request: NextRequest, originalPath: string) {
+  const url = request.nextUrl.clone();
+  url.pathname = "/admin/login";
+  url.searchParams.set("redirect", originalPath);
+  return NextResponse.redirect(url);
+}
+
 export const config = {
+  // Match only admin page navigations, NOT /api/admin/* routes.
+  // API routes handle their own auth via requireAdmin().
   matcher: ["/admin/:path*"],
 };

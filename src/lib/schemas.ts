@@ -26,7 +26,8 @@ const dateInput = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}/, "Use YYYY-MM-DD")
   .or(z.literal(""))
-  .transform((s) => (s === "" ? null : s));
+  .or(z.null())
+  .transform((s) => (s === "" || s === null ? null : s));
 
 const requiredDateInput = z
   .string()

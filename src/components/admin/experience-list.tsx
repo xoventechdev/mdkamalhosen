@@ -171,14 +171,24 @@ export function ExperienceList({ rows }: ExperienceListProps) {
 }
 
 function toInput(row: ExperienceRow): ExperienceInput {
+  // `ExperienceRow` types date fields as `Date`, but at runtime they can
+  // arrive as ISO strings (e.g. after passing through `unstable_cache` or
+  // across the RSC boundary to a client component, both of which serialize
+  // Date → string). Coerce defensively so the form always gets a value
+  // it can render into <input type="date">.
+  const toDateInput = (v: Date | string | null | undefined): string => {
+    if (!v) return "";
+    const d = typeof v === "string" ? new Date(v) : v;
+    return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+  };
   return {
     id: row.id,
     company: row.company,
     role: row.role,
     country: row.country,
     city: row.city ?? "",
-    startDate: row.startDate.toISOString().slice(0, 10),
-    endDate: row.endDate ? row.endDate.toISOString().slice(0, 10) : "",
+    startDate: toDateInput(row.startDate),
+    endDate: toDateInput(row.endDate),
     current: row.current,
     bullets: row.bullets,
     stack: row.stack,

@@ -91,11 +91,17 @@ export function ExperienceFormDialog({
         endDate: values.current ? null : values.endDate,
         startDate: values.startDate,
       };
-      const res = values.id
-        ? await updateExperience({ id: values.id, ...payload })
+      // Branch on `initial?.id` (the record we're editing) rather than
+      // `values.id`, which is not part of the form fields. Previously the
+      // edit path silently fell through to createExperience, which then
+      // collided with the unique (company, role, startDate) index and
+      // surfaced as "That value is already taken (duplicate slug or
+      // natural key)."
+      const res = initial?.id
+        ? await updateExperience({ id: initial.id, ...payload })
         : await createExperience(payload);
       if (res.ok) {
-        toast.success(values.id ? "Experience updated." : "Experience created.");
+        toast.success(initial?.id ? "Experience updated." : "Experience created.");
         onOpenChange(false);
       } else {
         toast.error(res.error);

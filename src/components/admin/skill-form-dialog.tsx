@@ -67,11 +67,16 @@ export function SkillFormDialog({
 
   function onSubmit(values: SkillInput) {
     startTransition(async () => {
-      const res = values.id
-        ? await updateSkill({ id: values.id, ...values })
+      // Branch on `initial?.id` (the record we're editing) rather than
+      // `values.id`, which is not part of the form fields. Without this,
+      // every edit silently falls through to createSkill, which then
+      // collides with the unique index and surfaces as a duplicate-key
+      // error to the user.
+      const res = initial?.id
+        ? await updateSkill({ id: initial.id, ...values })
         : await createSkill(values);
       if (res.ok) {
-        toast.success(values.id ? "Skill updated." : "Skill created.");
+        toast.success(initial?.id ? "Skill updated." : "Skill created.");
         onOpenChange(false);
       } else {
         toast.error(res.error);

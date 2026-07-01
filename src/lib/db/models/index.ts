@@ -9,3 +9,5 @@ export { BlogPostModel } from "./blog-post.model";
 export { BlogTagModel } from "./blog-tag.model";
 export { MessageModel } from "./message.model";
 export { ActivityLogModel } from "./activity-log.model";
+export { AdminUserModel, ADMIN_ROLES, type AdminRole, type AdminUserDoc } from "./admin-user.model";
+export { PasswordResetTokenModel, type PasswordResetTokenDoc } from "./password-reset-token.model";
