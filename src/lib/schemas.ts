@@ -67,7 +67,6 @@ export const profileSchema = z.object({
   whatsapp: optionalString(40),
   summary: trimmedString(2000),
   mission: trimmedString(1000),
-  philosophy: trimmedString(2000),
   values: z.array(trimmedString(200)).default([]),
   availability: z.enum(["open", "limited", "closed"]).default("open"),
   avatarUrl: optionalString(500),

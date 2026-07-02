@@ -73,7 +73,6 @@ export default async function AboutPage() {
         location: string;
         summary: string;
         mission: string;
-        philosophy: string;
         values?: string[];
       }
     | null,
@@ -101,14 +100,14 @@ export default async function AboutPage() {
   const story = profile.summary ? paragraphs(profile.summary) : [];
 
   // Journey timeline derives from the same experiences collection the
-  // /experience and /cv pages read. Colors are assigned by position —
-  // visual rhythm, not data — so they stay as a local constant.
-  const timeline = experiences.map((e, i) => ({
+  // /experience and /cv pages read, reversed so the most recent role
+  // sits at the top. Colors are assigned by position — visual rhythm,
+  // not data — so they stay as a local constant.
+  const timeline = [...experiences].reverse().map((e, i) => ({
     year: formatDate(e.startDate, { month: false, year: true }),
     place: [e.city, e.country].filter(Boolean).join(", "),
     role: e.role,
     company: e.company,
-    summary: e.bullets?.[0] ?? "",
     color: TIMELINE_COLORS[i % TIMELINE_COLORS.length] ?? "text-foreground",
     current: e.current,
   }));
@@ -208,10 +207,10 @@ export default async function AboutPage() {
               Bangladesh → Qatar → Saudi Arabia
             </h2>
           </div>
-          <ol className="mt-10 space-y-0">
+          <ol className="mt-10 space-y-10">
             {timeline.map((t, i) => (
               <ScrollReveal as="li" key={i} delay={i * 80}>
-                <div className="relative flex gap-4 border-l border-border pb-10 pl-6 last:border-l-transparent last:pb-0 sm:gap-6">
+                <div className="relative flex gap-4 border-l border-border pl-6 last:border-l-transparent sm:gap-6">
                   <span
                     className={`absolute -left-[7px] top-1.5 h-3.5 w-3.5 rounded-full border-2 border-background ${
                       t.current ? "bg-accent" : "bg-muted-foreground"
@@ -241,9 +240,6 @@ export default async function AboutPage() {
                       {t.role}
                     </h3>
                     <p className="text-sm text-muted-foreground">{t.company}</p>
-                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                      {t.summary}
-                    </p>
                   </div>
                 </div>
               </ScrollReveal>

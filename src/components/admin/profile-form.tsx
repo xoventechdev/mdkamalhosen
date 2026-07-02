@@ -167,9 +167,6 @@ export function ProfileForm({ initial }: ProfileFormProps) {
           <Field label="Mission" required error={errors.mission?.message} htmlFor="mission">
             <Textarea id="mission" rows={3} {...register("mission")} invalid={!!errors.mission} />
           </Field>
-          <Field label="Philosophy" required error={errors.philosophy?.message} htmlFor="philosophy">
-            <Textarea id="philosophy" rows={4} {...register("philosophy")} invalid={!!errors.philosophy} />
-          </Field>
         </CardContent>
       </Card>
 

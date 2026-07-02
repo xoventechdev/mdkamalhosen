@@ -69,6 +69,7 @@ function Hero({
   preferredLocations,
   linkedinUrl,
   currentJob,
+  avatarUrl,
 }: {
   showJob: boolean;
   profileName: string;
@@ -77,6 +78,7 @@ function Hero({
   preferredLocations: string[];
   linkedinUrl: string | null;
   currentJob: CurrentJobView | null;
+  avatarUrl: string | null;
 }) {
   return (
     <section className="relative overflow-hidden">
@@ -162,17 +164,32 @@ function Hero({
                   aria-hidden="true"
                 />
 
-                <p className="inline-flex items-center gap-1.5 rounded-full glass-chip px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/80">
-                  <span className="h-1.5 w-1.5 rounded-full bg-accent" /> Currently
-                </p>
-                <h2 className="mt-4 text-2xl font-semibold tracking-tight">
-                  {currentJob?.role ?? profileRole}
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {currentJob
-                    ? `${currentJob.company} · ${currentJob.place}`
-                    : profileLocation}
-                </p>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="inline-flex items-center gap-1.5 rounded-full glass-chip px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/80">
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent" /> Currently
+                    </p>
+                    <h2 className="mt-3 text-2xl font-semibold tracking-tight">
+                      {currentJob?.role ?? profileRole}
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {currentJob
+                        ? `${currentJob.company} · ${currentJob.place}`
+                        : profileLocation}
+                    </p>
+                  </div>
+                  {avatarUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatarUrl}
+                      alt={`${profileName} portrait`}
+                      width={72}
+                      height={72}
+                      loading="eager"
+                      className="h-[72px] w-[72px] flex-shrink-0 rounded-full object-cover ring-2 ring-accent/40 ring-offset-2 ring-offset-card"
+                    />
+                  )}
+                </div>
 
                 {currentJob && (
                   <dl className="mt-6 grid grid-cols-3 gap-3">
@@ -695,6 +712,7 @@ export default async function HomePage() {
         preferredLocations?: string[];
         linkedinUrl?: string | null;
         stats?: { value: string; label: string; color?: string }[];
+        avatarUrl?: string | null;
       }
     | null,
     Array<{
@@ -720,6 +738,7 @@ export default async function HomePage() {
   const profileLocation = profile?.location ?? "Riyadh, Saudi Arabia";
   const preferredLocations = profile?.preferredLocations ?? [];
   const linkedinUrl = profile?.linkedinUrl ?? null;
+  const avatarUrl = profile?.avatarUrl ?? null;
 
   // Filter out job-seeking-only marquee items when the toggle is off.
   const proofTexts = (profile?.highlights ?? [])
@@ -762,6 +781,7 @@ export default async function HomePage() {
         preferredLocations={preferredLocations}
         linkedinUrl={linkedinUrl}
         currentJob={currentJob}
+        avatarUrl={avatarUrl}
       />
       {proofTexts.length > 0 && <MarqueeBar items={proofTexts} />}
       <StatsSection stats={stats} />

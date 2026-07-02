@@ -23,7 +23,6 @@ export default async function AdminProfilePage() {
     whatsapp: row?.whatsapp ?? "",
     summary: row?.summary ?? "",
     mission: row?.mission ?? "",
-    philosophy: row?.philosophy ?? "",
     values: row?.values ?? [],
     availability: (row?.availability as ProfileInput["availability"]) ?? "open",
     avatarUrl: row?.avatarUrl ?? "",

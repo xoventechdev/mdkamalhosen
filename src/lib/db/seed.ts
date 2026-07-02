@@ -50,8 +50,6 @@ async function seedProfile() {
           "Building Management System (BMS) Engineer with over 5 years of international experience in HVAC automation, smart building technologies, and large-scale system commissioning. Combines a background in electrical engineering with computer science and software development skills to bridge IT and OT environments in modern smart buildings. Experienced in Honeywell Alerton and Tridium Niagara 4 platforms with strong expertise in BACnet and Modbus integrations. Proven ability to commission complex BMS networks, optimise energy performance, and deliver reliable automation solutions at King Abdullah Financial District (KAFD).",
         mission:
           "To become an internationally recognised Building Automation Engineer while combining software engineering and AI to build smarter buildings.",
-        philosophy:
-          "I don't develop software simply because I enjoy coding. I build software to solve engineering problems — attendance systems, resume builders, IoT dashboards, building automation tools, AI-assisted applications. Future work moves toward Cloud BMS, Digital Twin, Predictive Maintenance, and AI-assisted commissioning.",
         values: [
           "Commission with proof",
           "Document before deploying",
@@ -60,7 +58,7 @@ async function seedProfile() {
           "Bridge IT and OT",
         ],
         availability: "open",
-        avatarUrl: null,
+        avatarUrl: "/avatars/placeholder.svg",
         cvPdfUrl: "/cv/kamal-hosen-cv.pdf",
         // Marketing
         highlights: [

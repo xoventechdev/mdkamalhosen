@@ -25,7 +25,6 @@ export interface ProfileDoc {
   whatsapp?: string | null;
   summary: string;
   mission: string;
-  philosophy: string;
   values: string[];
   availability: string;
   avatarUrl?: string | null;
@@ -59,7 +58,6 @@ const ProfileSchema = new Schema<ProfileDoc>(
     whatsapp: String,
     summary: { type: String, required: true },
     mission: { type: String, required: true },
-    philosophy: { type: String, required: true },
     values: { type: [String], default: [] },
     availability: { type: String, default: "open" },
     avatarUrl: String,
