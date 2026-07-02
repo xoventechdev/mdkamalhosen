@@ -3,7 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
+import { ConditionalSiteFooter } from "@/components/conditional-site-footer";
 import { CommandPalette } from "@/components/ui/command-palette";
 import { Toaster } from "sonner";
 import { JsonLd } from "@/components/json-ld";
@@ -200,7 +200,7 @@ export default async function RootLayout({
           <main id="main" className="relative z-10 flex-1">
             {children}
           </main>
-          <SiteFooter />
+          <ConditionalSiteFooter />
           <CommandPalette />
           <Toaster richColors position="top-right" closeButton />
           {/* Site-wide structured data (Person + WebSite with SearchAction). */}

@@ -1,18 +1,21 @@
-import type { Types } from "mongoose";
-
 /**
- * Shape returned to the rest of the app: every document has both
- * `_id` (ObjectId, for further queries) and `id` (string, for URLs
- * and forms). The Mongoose `__v` version key is dropped.
+ * Shape returned to the rest of the app: every document is normalized into a
+ * plain object with `id` (string) — that's the only identifier exposed to
+ * server components, client components, and form payloads. The Mongoose
+ * `__v` version key and the raw `_id` ObjectId are dropped: `_id` carries a
+ * `buffer` (and a `toJSON`) that React Server Components refuse to serialize
+ * across the boundary to client components (see Next.js error:
+ * "Objects with toJSON methods are not supported"). All `_id` access in
+ * server-side code (queries, actions, seed scripts) operates on the raw
+ * Mongoose doc, not on `toClient`'s output, so dropping it here is safe.
  */
 export type WithClientId<T> = Omit<T, "_id" | "__v"> & {
   id: string;
-  _id: Types.ObjectId;
 };
 
 /**
- * Recursively normalize a Mongoose document (or array) into a plain
- * object with `id` (string) and `_id` (ObjectId) and no `__v`.
+ * Recursively normalize a Mongoose document (or array) into a plain object
+ * with `id` (string) and no `__v` or `_id`.
  *
  * Accepts a single doc, an array of docs, or anything in between.
  * Returns the input unchanged if it is `null`, a Date, or a primitive.
@@ -39,18 +42,16 @@ export function toClient(doc: unknown): unknown {
 
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(source)) {
-    if (k === "__v") continue;
-    if (
-      k === "_id" &&
-      v &&
-      typeof v === "object" &&
-      typeof (v as { toString?: () => string }).toString === "function"
-    ) {
-      out.id = (v as { toString(): string }).toString();
-      out._id = v;
-      continue;
-    }
+    if (k === "__v" || k === "_id") continue;
     out[k] = toClient(v);
   }
+
+  // Lift the document's `_id` into `id` so the rest of the app has a
+  // stringly-typed identifier (URL params, form fields, React keys).
+  const rawId = (source as { _id?: { toString(): string } })._id;
+  if (rawId && typeof rawId.toString === "function") {
+    out.id = rawId.toString();
+  }
+
   return out;
 }

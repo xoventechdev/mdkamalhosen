@@ -19,7 +19,7 @@ const fallbackProfile = {
   name: "Md Kamal Hosen",
   tagline:
     "Building Management System Engineer commissioning HVAC plants and shipping the software that runs them.",
-  location: "Riyadh, Saudi Arabia · Open to relocation",
+  location: "Riyadh, Saudi Arabia · Open to relocation anywhere",
   email: "mdkamalhosennn@gmail.com",
   linkedinUrl: "https://linkedin.com/in/mdkamalhosennn",
   githubUrl: "https://github.com/mdkamalhosennn",

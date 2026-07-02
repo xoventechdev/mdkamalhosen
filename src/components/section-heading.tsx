@@ -19,7 +19,7 @@ export function SectionHeading({
   return (
     <div
       className={cn(
-        "max-w-2xl",
+        "max-w-2xl animate-fade-up",
         align === "center" && "mx-auto text-center",
         className,
       )}

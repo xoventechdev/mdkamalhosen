@@ -34,7 +34,7 @@ const proof = [
   "Niagara 4 certified",
   "KAFD commissioning",
   "100K+ app downloads",
-  "Open to relocation",
+  "Open to relocation anywhere",
   "BACnet · Modbus · M-Bus",
   "DDC controllers",
   "Graphics",
@@ -78,7 +78,7 @@ function Hero() {
                   <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-emerald-500/80" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                 </span>
-                Open to relocation · UK &amp; Europe
+                Open to relocation anywhere for the right opportunity
               </span>
             </ScrollReveal>
 
@@ -376,8 +376,8 @@ function CTA() {
         </ScrollReveal>
         <ScrollReveal delay={200}>
           <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-            Open to relocation across UK and Europe. Let&apos;s talk about your
-            next project.
+            Open to relocation anywhere for the right opportunity. Let&apos;s
+            talk about your next project.
           </p>
         </ScrollReveal>
         <ScrollReveal delay={260}>
@@ -413,12 +413,12 @@ function FeaturedProjectsSkeleton() {
   return (
     <section className="border-b border-border" aria-busy="true" aria-label="Loading featured projects">
       <div className="container py-20 md:py-28">
-        <div className="h-8 w-64 animate-pulse rounded bg-muted" />
+        <div className="h-8 w-64 shimmer rounded bg-muted" />
         <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="h-72 animate-pulse rounded-2xl bg-muted/40"
+              className="h-72 shimmer rounded-2xl bg-muted/40"
               aria-hidden="true"
             />
           ))}
@@ -432,12 +432,12 @@ function LatestPostsSkeleton() {
   return (
     <section className="border-b border-border" aria-busy="true" aria-label="Loading latest posts">
       <div className="container py-20 md:py-28">
-        <div className="h-8 w-64 animate-pulse rounded bg-muted" />
+        <div className="h-8 w-64 shimmer rounded bg-muted" />
         <div className="mt-12 grid gap-5 md:grid-cols-3">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="h-56 animate-pulse rounded-2xl bg-muted/40"
+              className="h-56 shimmer rounded-2xl bg-muted/40"
               aria-hidden="true"
             />
           ))}

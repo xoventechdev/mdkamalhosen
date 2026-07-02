@@ -13,18 +13,18 @@ import { ContactForm } from "@/components/contact-form";
 import { absoluteUrl } from "@/lib/utils";
 
 const ogImage = absoluteUrl(
-  "/api/og?type=default&title=Contact&subtitle=Open+to+relocation+across+UK+and+Europe",
+  "/api/og?type=default&title=Contact&subtitle=Open+to+relocation+anywhere+for+the+right+opportunity",
 );
 
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Get in touch with Md Kamal Hosen — BMS Engineer, open to relocation across UK and Europe.",
+    "Get in touch with Md Kamal Hosen — BMS Engineer, open to relocation anywhere for the right opportunity.",
   alternates: { canonical: "/contact" },
   openGraph: {
     title: "Contact",
     description:
-      "Get in touch with Md Kamal Hosen — BMS Engineer, open to relocation across UK and Europe.",
+      "Get in touch with Md Kamal Hosen — BMS Engineer, open to relocation anywhere for the right opportunity.",
     url: absoluteUrl("/contact"),
     type: "website",
     images: [{ url: ogImage, width: 1200, height: 630, alt: "Contact — Md Kamal Hosen" }],
@@ -74,7 +74,7 @@ export default function ContactPage() {
       <PageHeader
         eyebrow="Contact"
         title="Let's talk about your next building"
-        description="I'm open to relocation across UK and Europe. Recruiters, contractors, and consultants welcome — I usually reply within a day or two."
+        description="I'm open to relocation anywhere for the right opportunity. Recruiters, contractors, and consultants welcome — I usually reply within a day or two."
       />
       <section>
         <div className="container py-12 md:py-20">
@@ -118,7 +118,7 @@ export default function ContactPage() {
                     <MapPin className="h-4 w-4" aria-hidden="true" /> Riyadh, Saudi Arabia
                   </p>
                   <p className="inline-flex items-center gap-1.5">
-                    <Globe className="h-4 w-4" aria-hidden="true" /> Open to relocation (UK/EU)
+                    <Globe className="h-4 w-4" aria-hidden="true" /> Open to relocation anywhere for the right opportunity
                   </p>
                 </div>
                 <div className="mt-6 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
