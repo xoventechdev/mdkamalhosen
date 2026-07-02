@@ -1,24 +1,32 @@
 import { ScrollReveal } from "@/components/scroll-reveal";
 
-interface Stat {
+export interface Stat {
   value: string;
   label: string;
   color?: string;
 }
 
-const stats: Stat[] = [
-  { value: "5+", label: "Years international", color: "text-accent" },
-  { value: "KAFD", label: "District commissioned", color: "text-cat-bms" },
-  { value: "100K+", label: "App downloads", color: "text-cat-android" },
-  { value: "6", label: "Honeywell + Tridium certs", color: "text-cat-software" },
-];
+export interface StatGridProps {
+  stats: Stat[];
+}
 
-export function StatGrid() {
+export function StatGrid({ stats }: StatGridProps) {
+  if (stats.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center text-sm text-muted-foreground">
+        No stats configured yet. Add some in{" "}
+        <a href="/admin/profile" className="text-accent hover:underline">
+          Admin → Profile
+        </a>
+        .
+      </div>
+    );
+  }
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
       {stats.map((s, i) => (
         <ScrollReveal
-          key={s.label}
+          key={`${s.value}-${s.label}`}
           delay={i * 80}
           as="div"
           className="relative overflow-hidden rounded-xl border border-border bg-card p-4 sm:p-5"

@@ -10,6 +10,7 @@ import { JsonLd } from "@/components/json-ld";
 import { personJsonLd, websiteJsonLd, combineJsonLd } from "@/lib/jsonld";
 import { absoluteUrl } from "@/lib/utils";
 import { getProfile } from "@/server/queries";
+import { SITE_DEFAULTS } from "@/lib/site-defaults";
 import "@/styles/globals.css";
 
 const inter = Inter({
@@ -37,156 +38,155 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: "Md Kamal Hosen — Building Management System Engineer",
-    template: "%s — Md Kamal Hosen",
-  },
-  description:
-    "BMS Engineer commissioning HVAC plants and shipping the software that runs them. Honeywell Alerton, Niagara 4, BACnet, Modbus, IoT, and AI-assisted engineering workflow.",
-  keywords: [
-    "Building Management System",
-    "BMS Engineer",
-    "Honeywell Alerton",
-    "Niagara 4",
-    "BACnet",
-    "Modbus",
-    "HVAC automation",
-    "Smart buildings",
-    "Md Kamal Hosen",
-  ],
-  authors: [{ name: "Md Kamal Hosen", url: absoluteUrl("/about") }],
-  creator: "Md Kamal Hosen",
-  publisher: "Md Kamal Hosen",
-  category: "technology",
-  alternates: {
-    canonical: "/",
-    types: {
-      "application/rss+xml": [
-        { url: "/feed.xml", title: "Md Kamal Hosen — Blog RSS" },
-      ],
-    },
-  },
-  openGraph: {
-    type: "website",
-    locale: "en_IE",
-    url: siteUrl,
-    siteName: "Md Kamal Hosen",
-    title: "Md Kamal Hosen — Building Management System Engineer",
-    description:
-      "BMS Engineer commissioning HVAC plants and shipping the software that runs them.",
-    images: [
-      {
-        url: defaultOgImage,
-        width: 1200,
-        height: 630,
-        alt: "Md Kamal Hosen — BMS Engineer",
+// Last-ditch fallbacks used only when the profile doc is missing or has no
+// override (e.g. before `npm run seed`).
+const DEFAULT_TITLE = `${SITE_DEFAULTS.name} — Building Management System Engineer`;
+const DEFAULT_DESCRIPTION =
+  "BMS Engineer commissioning HVAC plants and shipping the software that runs them. Honeywell Alerton, Niagara 4, BACnet, Modbus, IoT, and AI-assisted engineering workflow.";
+const DEFAULT_KEYWORDS = [
+  "Building Management System",
+  "BMS Engineer",
+  "Honeywell Alerton",
+  "Niagara 4",
+  "BACnet",
+  "Modbus",
+  "HVAC automation",
+  "Smart buildings",
+  SITE_DEFAULTS.name,
+];
+const DEFAULT_TWITTER_HANDLE = SITE_DEFAULTS.twitterHandle;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const profile = (await getProfile().catch(() => null)) as {
+    name?: string;
+    siteTitle?: string;
+    siteDescription?: string;
+    siteKeywords?: string[];
+    twitterHandle?: string;
+  } | null;
+
+  const title = profile?.siteTitle || DEFAULT_TITLE;
+  const description = profile?.siteDescription || DEFAULT_DESCRIPTION;
+  const keywords = profile?.siteKeywords?.length ? profile.siteKeywords : DEFAULT_KEYWORDS;
+  const twitterCreator = profile?.twitterHandle || DEFAULT_TWITTER_HANDLE;
+  const name = profile?.name || SITE_DEFAULTS.name;
+
+  return {
+    metadataBase: new URL(siteUrl),
+    authors: [{ name, url: absoluteUrl("/about") }],
+    creator: name,
+    publisher: name,
+    category: "technology",
+    alternates: {
+      canonical: "/",
+      types: {
+        "application/rss+xml": [
+          { url: "/feed.xml", title: `${name} — Blog RSS` },
+        ],
       },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Md Kamal Hosen — Building Management System Engineer",
-    description:
-      "BMS Engineer commissioning HVAC plants and shipping the software that runs them.",
-    images: [defaultOgImage],
-    creator: "@mdkamalhosennn",
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+    },
+    robots: {
       index: true,
       follow: true,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-      "max-video-preview": -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
     },
-  },
-  icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.svg", type: "image/svg+xml" },
-    ],
-    apple: "/apple-touch-icon.png",
-  },
-  manifest: "/manifest.webmanifest",
-};
-
-async function loadSiteJsonLd() {
-  // Best-effort: profile may be empty in dev before seed runs.
-  try {
-    const profile = (await getProfile()) as unknown as {
-      name: string;
-      email: string;
-      phone?: string | null;
-      location: string;
-      avatarUrl?: string | null;
-      summary: string;
-      linkedinUrl?: string | null;
-      githubUrl?: string | null;
-      role: string;
-    } | null;
-    if (!profile) {
-      return combineJsonLd(
-        personJsonLd({
-          name: "Md Kamal Hosen",
-          email: "mdkamalhosennn@gmail.com",
-        }),
-        websiteJsonLd({ includeSearchAction: true }),
-      );
-    }
-    return combineJsonLd(
-      personJsonLd({
-        name: profile.name,
-        email: profile.email,
-        phone: profile.phone,
-        location: profile.location,
-        avatarUrl: profile.avatarUrl,
-        bio: profile.summary,
-        linkedinUrl: profile.linkedinUrl,
-        githubUrl: profile.githubUrl,
-        currentRole: profile.role,
-        currentCompany: undefined,
-      }),
-      websiteJsonLd({ includeSearchAction: true }),
-    );
-  } catch {
-    return combineJsonLd(
-      personJsonLd({ name: "Md Kamal Hosen" }),
-      websiteJsonLd({ includeSearchAction: true }),
-    );
-  }
+    icons: {
+      icon: [
+        { url: "/favicon.ico", sizes: "any" },
+        { url: "/icon.svg", type: "image/svg+xml" },
+      ],
+      apple: "/apple-touch-icon.png",
+    },
+    manifest: "/manifest.webmanifest",
+    title: {
+      default: title,
+      template: `%s — ${name}`,
+    },
+    description,
+    keywords,
+    openGraph: {
+      type: "website",
+      locale: "en_IE",
+      url: siteUrl,
+      siteName: name,
+      title,
+      description,
+      images: [
+        {
+          url: defaultOgImage,
+          width: 1200,
+          height: 630,
+          alt: `${name} — BMS Engineer`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [defaultOgImage],
+      creator: twitterCreator,
+    },
+  };
 }
 
-async function loadFooterProfile() {
-  // Pulls just the fields the SiteFooter needs (name, location, social URLs,
-  // and the job-seeking toggle) so the footer can hide "Currently available"
-  // and adjust the location line when the admin disables that signal.
-  try {
-    const profile = (await getProfile()) as unknown as {
-      name: string;
-      location: string;
-      email: string;
-      linkedinUrl?: string | null;
-      githubUrl?: string | null;
-      whatsapp?: string | null;
-      lookingToNewOpportunity?: boolean;
-    } | null;
-    if (!profile) return null;
-    return {
-      name: profile.name,
-      location: profile.location,
-      email: profile.email,
-      linkedinUrl: profile.linkedinUrl ?? null,
-      githubUrl: profile.githubUrl ?? null,
-      whatsapp: profile.whatsapp ?? null,
-      lookingToNewOpportunity: profile.lookingToNewOpportunity ?? true,
-    };
-  } catch {
-    return null;
+// Shared profile shape consumed by JSON-LD, footer, and metadata below.
+// Cast once on the cache result so consumers don't have to re-cast.
+type ProfileView = {
+  name: string;
+  email: string;
+  phone?: string | null;
+  location: string;
+  avatarUrl?: string | null;
+  summary: string;
+  linkedinUrl?: string | null;
+  githubUrl?: string | null;
+  whatsapp?: string | null;
+  role: string;
+  lookingToNewOpportunity?: boolean;
+} | null;
+
+function buildJsonLd(profile: ProfileView) {
+  if (!profile) {
+    return combineJsonLd(
+      personJsonLd({ name: SITE_DEFAULTS.name, email: SITE_DEFAULTS.email }),
+      websiteJsonLd({ includeSearchAction: true }),
+    );
   }
+  return combineJsonLd(
+    personJsonLd({
+      name: profile.name,
+      email: profile.email,
+      phone: profile.phone,
+      location: profile.location,
+      avatarUrl: profile.avatarUrl,
+      bio: profile.summary,
+      linkedinUrl: profile.linkedinUrl,
+      githubUrl: profile.githubUrl,
+      currentRole: profile.role,
+      currentCompany: undefined,
+    }),
+    websiteJsonLd({ includeSearchAction: true }),
+  );
+}
+
+function buildFooterProfile(profile: ProfileView) {
+  if (!profile) return null;
+  return {
+    name: profile.name,
+    location: profile.location,
+    email: profile.email,
+    linkedinUrl: profile.linkedinUrl ?? null,
+    githubUrl: profile.githubUrl ?? null,
+    whatsapp: profile.whatsapp ?? null,
+    lookingToNewOpportunity: profile.lookingToNewOpportunity ?? true,
+  };
 }
 
 export default async function RootLayout({
@@ -194,17 +194,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  console.log("[layout][loadSiteJsonLd] start");
-  const layoutT0 = Date.now();
-  const [jsonLd, footerProfile] = await Promise.all([
-    loadSiteJsonLd(),
-    loadFooterProfile(),
-  ]);
-  const layoutMs = Date.now() - layoutT0;
-  console.log(`[layout][loadSiteJsonLd] end ${layoutMs}ms`);
-  if (layoutMs > 1000) {
-    console.warn(`[layout][loadSiteJsonLd] SLOW ${layoutMs}ms`);
-  }
+  // Single fetch shared across JSON-LD, footer, and metadata. The
+  // `unstable_cache` wrapper inside `getProfile` de-duplicates per request.
+  const profile = (await getProfile().catch(() => null)) as ProfileView;
+  const jsonLd = buildJsonLd(profile);
+  const footerProfile = buildFooterProfile(profile);
 
   return (
     <html
@@ -213,7 +207,6 @@ export default async function RootLayout({
       className={`${inter.variable} ${jetbrains.variable}`}
     >
       <body className="relative min-h-screen bg-background font-sans text-foreground">
-        {/* Fixed gradient mesh — sits behind all content. */}
         <div className="gradient-mesh" aria-hidden="true" />
 
         <ThemeProvider
@@ -228,16 +221,14 @@ export default async function RootLayout({
           >
             Skip to content
           </a>
-          <SiteHeader />
+          <SiteHeader name={footerProfile?.name} />
           <main id="main" className="relative z-10 flex-1">
             {children}
           </main>
           <ConditionalSiteFooter profile={footerProfile} />
           <CommandPalette />
           <Toaster richColors position="top-right" closeButton />
-          {/* Site-wide structured data (Person + WebSite with SearchAction). */}
           <JsonLd data={jsonLd} />
-          {/* Vercel Web Vitals + pageview analytics. No-op outside Vercel. */}
           <Analytics />
         </ThemeProvider>
       </body>

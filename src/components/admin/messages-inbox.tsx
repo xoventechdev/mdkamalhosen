@@ -30,7 +30,7 @@ import {
   markMessageRead,
   markMessageUnread,
 } from "@/server/actions";
-import { formatDate } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 
 export interface MessageRow {
   id: string;
@@ -102,7 +102,7 @@ export function MessagesInbox({ rows: initialRows }: { rows: MessageRow[] }) {
                   {row.subject || <span className="text-muted-foreground">(no subject)</span>}
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
-                  {formatDate(row.createdAt)}
+                  {formatDateTime(row.createdAt)}
                 </TableCell>
                 <TableCell>
                   {row.archived ? (
@@ -139,7 +139,7 @@ export function MessagesInbox({ rows: initialRows }: { rows: MessageRow[] }) {
               <DrawerHeader>
                 <DrawerTitle>{selected.subject || "(no subject)"}</DrawerTitle>
                 <p className="text-sm text-muted-foreground">
-                  From {selected.name} &lt;{selected.email}&gt; · {formatDate(selected.createdAt)}
+                  From {selected.name} &lt;{selected.email}&gt; · {formatDateTime(selected.createdAt)}
                 </p>
               </DrawerHeader>
               <DrawerBody>

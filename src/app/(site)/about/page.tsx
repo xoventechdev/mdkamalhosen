@@ -12,8 +12,8 @@ import { PageHeader } from "@/components/page-header";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { ScrollSpyNav } from "@/components/scroll-spy-nav";
 import { JsonLd } from "@/components/json-ld";
-import { getProfile } from "@/server/queries";
-import { paragraphs, absoluteUrl } from "@/lib/utils";
+import { getProfile, getAllExperiences } from "@/server/queries";
+import { formatDate, paragraphs, absoluteUrl } from "@/lib/utils";
 import { breadcrumbJsonLd } from "@/lib/jsonld";
 
 export const revalidate = 60;
@@ -44,44 +44,14 @@ export const metadata: Metadata = {
   },
 };
 
-const timeline = [
-  {
-    year: "2019",
-    place: "Doha, Qatar",
-    role: "BMS Technician",
-    company: "Hassanesco",
-    summary:
-      "Installed and configured sensors, actuators, and DDC controllers. First exposure to live commissioning teams.",
-    color: "text-cat-bms",
-  },
-  {
-    year: "2020",
-    place: "Doha, Qatar",
-    role: "BMS Operator",
-    company: "Stark Security Services",
-    summary:
-      "Monitored HVAC, lighting, and energy management from central BMS platforms. Responded to alarms, supported energy optimisation.",
-    color: "text-cat-bms",
-  },
-  {
-    year: "2023",
-    place: "Doha, Qatar",
-    role: "BMS Testing & Commissioning Engineer",
-    company: "Stark Security Services",
-    summary:
-      "Programmed and commissioned Honeywell BMS systems. Integrated third-party equipment via BACnet, Modbus, M-Bus. Wrote as-built records.",
-    color: "text-cat-software",
-  },
-  {
-    year: "2025",
-    place: "Riyadh, Saudi Arabia",
-    role: "BMS Engineer",
-    company: "GLSAN Contracting Company",
-    summary:
-      "Lead testing, commissioning, and optimisation at the King Abdullah Financial District (KAFD). Niagara 4 logic, graphics, fault diagnosis.",
-    color: "text-accent",
-    current: true,
-  },
+// Static colour rotation applied to timeline entries — purely visual
+// styling, not data, so it stays as a UI constant.
+const TIMELINE_COLORS = [
+  "text-cat-bms",
+  "text-cat-software",
+  "text-cat-iot",
+  "text-accent",
+  "text-cat-android",
 ];
 
 const spySections = [
@@ -92,16 +62,31 @@ const spySections = [
 ];
 
 export default async function AboutPage() {
-  const profile = (await getProfile()) as unknown as {
-    name: string;
-    role: string;
-    tagline: string;
-    location: string;
-    summary: string;
-    mission: string;
-    philosophy: string;
-    values?: string[];
-  } | null;
+  const [profile, experiences] = (await Promise.all([
+    getProfile().catch(() => null),
+    getAllExperiences().catch(() => []),
+  ])) as [
+    | {
+        name: string;
+        role: string;
+        tagline: string;
+        location: string;
+        summary: string;
+        mission: string;
+        philosophy: string;
+        values?: string[];
+      }
+    | null,
+    Array<{
+      role: string;
+      company: string;
+      country: string;
+      city?: string | null;
+      startDate: Date | string;
+      current: boolean;
+      bullets: string[];
+    }>,
+  ];
 
   if (!profile) {
     return (
@@ -114,6 +99,19 @@ export default async function AboutPage() {
   const displayValues = profile.values ?? [];
   const mission = profile.mission ?? "";
   const story = profile.summary ? paragraphs(profile.summary) : [];
+
+  // Journey timeline derives from the same experiences collection the
+  // /experience and /cv pages read. Colors are assigned by position —
+  // visual rhythm, not data — so they stay as a local constant.
+  const timeline = experiences.map((e, i) => ({
+    year: formatDate(e.startDate, { month: false, year: true }),
+    place: [e.city, e.country].filter(Boolean).join(", "),
+    role: e.role,
+    company: e.company,
+    summary: e.bullets?.[0] ?? "",
+    color: TIMELINE_COLORS[i % TIMELINE_COLORS.length] ?? "text-foreground",
+    current: e.current,
+  }));
 
   return (
     <>

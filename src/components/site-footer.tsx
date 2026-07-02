@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Github, Linkedin, Mail, ArrowUp, MapPin, Heart, Download } from "lucide-react";
 import { footerNavItems } from "@/lib/nav";
+import { SITE_DEFAULTS } from "@/lib/site-defaults";
 
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
@@ -32,16 +33,16 @@ interface SiteFooterProps {
   profile?: SiteFooterProfile | null;
 }
 
-// Base fallback values. `location` is computed below so it respects the
-// lookingToNewOpportunity toggle — see the helper at the bottom of the file.
+// Base fallback values sourced from `SITE_DEFAULTS`. `location` is
+// computed below so it respects the lookingToNewOpportunity toggle.
 const fallbackProfileBase = {
-  name: "Md Kamal Hosen",
+  name: SITE_DEFAULTS.name,
   tagline:
     "Building Management System Engineer commissioning HVAC plants and shipping the software that runs them.",
-  email: "mdkamalhosennn@gmail.com",
-  linkedinUrl: "https://linkedin.com/in/mdkamalhosennn",
-  githubUrl: "https://github.com/mdkamalhosennn",
-  whatsapp: "https://wa.me/966583471377",
+  email: SITE_DEFAULTS.email,
+  linkedinUrl: SITE_DEFAULTS.linkedinUrl,
+  githubUrl: SITE_DEFAULTS.githubUrl,
+  whatsapp: SITE_DEFAULTS.whatsapp,
 };
 
 export function SiteFooter({ profile = null }: SiteFooterProps) {

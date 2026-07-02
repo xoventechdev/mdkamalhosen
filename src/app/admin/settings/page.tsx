@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminSettingsPage() {
   const revalidateSecretMasked = maskSecret(process.env.REVALIDATE_SECRET);
   const smtpConfigured = Boolean(
-    process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS,
+    process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASSWORD,
   );
   const aiView: AiSettingsView | null = await getAiSettings();
   return (

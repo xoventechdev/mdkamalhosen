@@ -62,6 +62,42 @@ async function seedProfile() {
         availability: "open",
         avatarUrl: null,
         cvPdfUrl: "/cv/kamal-hosen-cv.pdf",
+        // Marketing
+        highlights: [
+          { text: "5+ years international", jobSeekingOnly: false },
+          { text: "Honeywell Alerton", jobSeekingOnly: false },
+          { text: "Niagara 4 certified", jobSeekingOnly: false },
+          { text: "KAFD commissioning", jobSeekingOnly: false },
+          { text: "100K+ app downloads", jobSeekingOnly: false },
+          { text: "Open to relocation anywhere", jobSeekingOnly: true },
+          { text: "BACnet · Modbus · M-Bus", jobSeekingOnly: false },
+          { text: "DDC controllers", jobSeekingOnly: false },
+          { text: "Graphics", jobSeekingOnly: false },
+        ],
+        preferredLocations: ["UK / EU"],
+        // Site-wide metadata
+        siteTitle: "Md Kamal Hosen — Building Management System Engineer",
+        siteDescription:
+          "BMS Engineer commissioning HVAC plants and shipping the software that runs them. Honeywell Alerton, Niagara 4, BACnet, Modbus, IoT, and AI-assisted engineering workflow.",
+        siteKeywords: [
+          "Building Management System",
+          "BMS Engineer",
+          "Honeywell Alerton",
+          "Niagara 4",
+          "BACnet",
+          "Modbus",
+          "HVAC automation",
+          "Smart buildings",
+          "Md Kamal Hosen",
+        ],
+        twitterHandle: "@mdkamalhosennn",
+        // Stats grid
+        stats: [
+          { value: "5+", label: "Years international", color: "text-accent" },
+          { value: "KAFD", label: "District commissioned", color: "text-cat-bms" },
+          { value: "100K+", label: "App downloads", color: "text-cat-android" },
+          { value: "6", label: "Honeywell + Tridium certs", color: "text-cat-software" },
+        ],
       },
     },
     { upsert: true },

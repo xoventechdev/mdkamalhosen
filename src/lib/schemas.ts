@@ -23,11 +23,10 @@ const optionalString = (max: number) =>
     .or(z.literal("").transform(() => undefined));
 
 const dateInput = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}/, "Use YYYY-MM-DD")
-  .or(z.literal(""))
-  .or(z.null())
-  .transform((s) => (s === "" || s === null ? null : s));
+  .union([z.string(), z.literal(""), z.null()])
+  .optional()
+  .transform((s) => (s === "" || s == null ? null : s))
+  .pipe(z.string().nullable());
 
 const requiredDateInput = z
   .string()
@@ -73,6 +72,31 @@ export const profileSchema = z.object({
   availability: z.enum(["open", "limited", "closed"]).default("open"),
   avatarUrl: optionalString(500),
   cvPdfUrl: optionalString(500),
+  // Marketing
+  highlights: z
+    .array(
+      z.object({
+        text: trimmedString(80),
+        jobSeekingOnly: z.boolean().default(false),
+      }),
+    )
+    .default([]),
+  preferredLocations: z.array(trimmedString(80)).default([]),
+  // Site-wide metadata — optional, with safe fallbacks at the read site
+  siteTitle: optionalString(120),
+  siteDescription: optionalString(500),
+  siteKeywords: z.array(trimmedString(80)).default([]),
+  twitterHandle: optionalString(40),
+  // Stats grid
+  stats: z
+    .array(
+      z.object({
+        value: trimmedString(40),
+        label: trimmedString(120),
+        color: optionalString(60),
+      }),
+    )
+    .default([]),
 });
 export type ProfileInput = z.input<typeof profileSchema>;
 export type ProfileOutput = z.output<typeof profileSchema>;

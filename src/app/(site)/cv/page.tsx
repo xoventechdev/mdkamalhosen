@@ -13,7 +13,16 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { Badge } from "@/components/badge";
-import { absoluteUrl } from "@/lib/utils";
+import {
+  getProfile,
+  getAllExperiences,
+  getAllCertifications,
+  getAllEducation,
+  getSkillGroups,
+} from "@/server/queries";
+import { formatDate, absoluteUrl } from "@/lib/utils";
+
+export const revalidate = 60;
 
 const ogImage = absoluteUrl(
   "/api/og?type=default&title=CV&subtitle=Building+Management+System+Engineer+%C2%B7+Riyadh%2C+KSA",
@@ -27,7 +36,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "CV — Md Kamal Hosen",
     description:
-      "Curriculum vitae of Md Kamal Hosen, Building Management System Engineer. Download the PDF.",
+      "Curriculum vitae of Md Kamal Hosen, Building Management System Engineer.",
     url: absoluteUrl("/cv"),
     type: "website",
     images: [{ url: ogImage, width: 1200, height: 630, alt: "CV — Md Kamal Hosen" }],
@@ -40,104 +49,82 @@ export const metadata: Metadata = {
   },
 };
 
-const experience = [
-  {
-    role: "BMS Engineer",
-    company: "GLSAN Contracting Company",
-    location: "Riyadh, Saudi Arabia",
-    dates: "Sep 2025 — Present",
-    bullets: [
-      "Lead testing, commissioning, and optimisation of BMS networks at KAFD.",
-      "Develop logic programming, configurations, and graphics using Honeywell Alerton and Niagara 4.",
-      "Validate HVAC control sequences and diagnose integration faults.",
-      "Collaborate with consultants, contractors, and vendors.",
-    ],
-  },
-  {
-    role: "BMS Testing & Commissioning Engineer",
-    company: "Stark Security Services",
-    location: "Doha, Qatar",
-    dates: "Nov 2023 — Aug 2025",
-    bullets: [
-      "Programmed and commissioned Honeywell BMS systems (DDC logic + HVAC).",
-      "Integrated third-party equipment via BACnet, Modbus, M-Bus.",
-      "Prepared commissioning reports, test records, and as-built documentation.",
-    ],
-  },
-  {
-    role: "BMS Operator",
-    company: "Stark Security Services",
-    location: "Doha, Qatar",
-    dates: "Jul 2020 — Oct 2023",
-    bullets: [
-      "Monitored HVAC, lighting, and energy systems from central BMS platforms.",
-      "Handled alarms and supported energy optimisation initiatives.",
-    ],
-  },
-  {
-    role: "BMS Technician",
-    company: "Hassanesco",
-    location: "Doha, Qatar",
-    dates: "Jul 2019 — Jul 2020",
-    bullets: [
-      "Installed and configured sensors, actuators, and DDC controllers.",
-      "Supported commissioning teams during testing and deployment.",
-    ],
-  },
-];
+type Experience = {
+  company: string;
+  role: string;
+  country: string;
+  city?: string | null;
+  startDate: Date | string;
+  endDate?: Date | string | null;
+  current: boolean;
+  bullets: string[];
+};
 
-const certifications = [
-  "Niagara 4 BACnet Driver — Tridium University",
-  "Commissioning a JACE — Tridium University",
-  "BACnet Engineering — Honeywell Buildings University",
-  "Honeywell VFD Training — Honeywell Buildings University",
-  "Networking Fundamentals — Honeywell Buildings University",
-  "Cyber Security in BAS Systems — Honeywell Buildings University",
-];
+type Certification = {
+  name: string;
+  issuer: string;
+  year?: number | null;
+};
 
-const education = [
-  {
-    degree: "Bachelor of Arts (Ongoing)",
-    school: "Bangladesh Open University",
-    year: "Est. 2027",
-  },
-  {
-    degree: "Diploma in Electrical Engineering",
-    school: "Bangladesh Youth Technical Training",
-    year: "2016",
-  },
-];
+type Education = {
+  degree: string;
+  institution: string;
+  startYear: number;
+  endYear?: number | null;
+  status: string;
+};
 
-const coreSkills = [
-  "Honeywell Alerton",
-  "Tridium Niagara 4",
-  "DDC Controllers",
-  "BACnet (IP/MSTP)",
-  "Modbus (RTU/TCP)",
-  "M-Bus",
-  "HVAC Control Logic",
-  "Functional Testing",
-  "Energy Optimisation",
-  "Java",
-  "Python",
-  "Node.js",
-  "React",
-  "Next.js",
-  "Prisma",
-  "Supabase",
-  "MQTT",
-  "ESP8266",
-  "Android",
-  "AI Workflow",
-];
+type Skill = {
+  name: string;
+  level: number;
+};
 
-export default function CvPage() {
+type Profile = {
+  name: string;
+  role: string;
+  email: string;
+  phone?: string | null;
+  location?: string | null;
+  linkedinUrl?: string | null;
+  summary?: string | null;
+};
+
+function dateRange(start: Date | string, end: Date | string | null | undefined): string {
+  return `${formatDate(start)} — ${end ? formatDate(end) : "Present"}`;
+}
+
+export default async function CvPage() {
+  // Single roundtrip per entity. The queries are wrapped in
+  // `unstable_cache` (60s revalidate) so the public site stays fast
+  // and any admin edit lands here within a minute. We swallow per-query
+  // errors so one broken collection (e.g. the DB being briefly down)
+  // doesn't take the whole CV down — empty sections render an inline
+  // hint instead.
+  const [profile, experiences, certifications, education, skillGroups] = await Promise.all([
+    getProfile().catch(() => null) as Promise<Profile | null>,
+    getAllExperiences().catch(() => []) as Promise<Experience[]>,
+    getAllCertifications().catch(() => []) as Promise<Certification[]>,
+    getAllEducation().catch(() => []) as Promise<Education[]>,
+    getSkillGroups().catch(() => []) as Promise<Array<{ name: string; skills: Skill[] }>>,
+  ]);
+
+  // Core skills: anything at level 3+ ("Proficient", "Advanced", "Expert").
+  // Sorted by level desc, then name asc, capped so the sidebar stays tidy.
+  const coreSkills = skillGroups
+    .flatMap((g) => g.skills)
+    .filter((s) => s.level >= 3)
+    .sort((a, b) => b.level - a.level || a.name.localeCompare(b.name))
+    .map((s) => s.name);
+
   return (
     <>
       <PageHeader
         eyebrow="Curriculum Vitae"
-        title="Md Kamal Hosen — BMS Engineer"
-        description="Building Management System Engineer with 5+ years international experience in HVAC automation, smart building technologies, and large-scale BMS commissioning."
+        title={`${profile?.name ?? "Md Kamal Hosen"} — ${profile?.role ?? "BMS Engineer"}`}
+        description={
+          profile?.summary ??
+          "Building Management System Engineer with 5+ years international experience in HVAC automation, smart building technologies, and large-scale BMS commissioning."
+        }
         variant="subtle"
       />
       <section>
@@ -146,27 +133,37 @@ export default function CvPage() {
           <ScrollReveal>
             <div className="glass-card mb-10 flex flex-wrap items-center justify-between gap-4 p-5 print:border-black print:bg-white print:text-black">
               <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                <a
-                  href="mailto:mdkamalhosennn@gmail.com"
-                  className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-accent"
-                >
-                  <Mail className="h-4 w-4" aria-hidden="true" /> mdkamalhosennn@gmail.com
-                </a>
-                <a
-                  href="tel:+966583471377"
-                  className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-accent"
-                >
-                  <Phone className="h-4 w-4" aria-hidden="true" /> +966 58 347 1377
-                </a>
-                <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                  <MapPin className="h-4 w-4" aria-hidden="true" /> Riyadh, Saudi Arabia
-                </span>
-                <a
-                  href="https://linkedin.com/in/mdkamalhosennn"
-                  className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-accent"
-                >
-                  <Linkedin className="h-4 w-4" aria-hidden="true" /> LinkedIn
-                </a>
+                {profile?.email && (
+                  <a
+                    href={`mailto:${profile.email}`}
+                    className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-accent"
+                  >
+                    <Mail className="h-4 w-4" aria-hidden="true" /> {profile.email}
+                  </a>
+                )}
+                {profile?.phone && (
+                  <a
+                    href={`tel:${profile.phone.replace(/\s+/g, "")}`}
+                    className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-accent"
+                  >
+                    <Phone className="h-4 w-4" aria-hidden="true" /> {profile.phone}
+                  </a>
+                )}
+                {profile?.location && (
+                  <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                    <MapPin className="h-4 w-4" aria-hidden="true" /> {profile.location}
+                  </span>
+                )}
+                {profile?.linkedinUrl && (
+                  <a
+                    href={profile.linkedinUrl}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-accent"
+                  >
+                    <Linkedin className="h-4 w-4" aria-hidden="true" /> LinkedIn
+                  </a>
+                )}
               </div>
               <a
                 href="/cv/kamal-hosen-cv.pdf"
@@ -179,38 +176,48 @@ export default function CvPage() {
           </ScrollReveal>
 
           <div className="grid gap-10 lg:grid-cols-3">
-            {/* Main column */}
+            {/* Main column — Experience */}
             <div className="lg:col-span-2 space-y-6">
               <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-accent">
                 <Building2 className="h-4 w-4" aria-hidden="true" /> Experience
               </h2>
-              <ol className="space-y-5">
-                {experience.map((e, i) => (
-                  <ScrollReveal as="li" key={i} delay={i * 60}>
-                    <div className="glass-card p-5 print:border-black print:bg-white">
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <h3 className="text-base font-semibold">{e.role}</h3>
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {e.dates}
-                        </span>
+              {experiences.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No experience entries yet.
+                </p>
+              ) : (
+                <ol className="space-y-5">
+                  {experiences.map((e, i) => (
+                    <ScrollReveal as="li" key={`${e.company}-${e.role}-${String(e.startDate)}`} delay={i * 60}>
+                      <div className="glass-card p-5 print:border-black print:bg-white">
+                        <div className="flex flex-wrap items-baseline justify-between gap-2">
+                          <h3 className="text-base font-semibold">{e.role}</h3>
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {dateRange(e.startDate, e.endDate)}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm text-accent">{e.company}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {[e.city, e.country].filter(Boolean).join(", ")}
+                        </p>
+                        {e.bullets.length > 0 && (
+                          <ul className="mt-3 space-y-1.5">
+                            {e.bullets.map((b, j) => (
+                              <li
+                                key={j}
+                                className="flex items-start gap-2 text-sm text-muted-foreground"
+                              >
+                                <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" />
+                                {b}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
-                      <p className="mt-1 text-sm text-accent">{e.company}</p>
-                      <p className="text-xs text-muted-foreground">{e.location}</p>
-                      <ul className="mt-3 space-y-1.5">
-                        {e.bullets.map((b, j) => (
-                          <li
-                            key={j}
-                            className="flex items-start gap-2 text-sm text-muted-foreground"
-                          >
-                            <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" />
-                            {b}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </ScrollReveal>
-                ))}
-              </ol>
+                    </ScrollReveal>
+                  ))}
+                </ol>
+              )}
             </div>
 
             {/* Side column */}
@@ -219,46 +226,71 @@ export default function CvPage() {
                 <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-accent">
                   <Award className="h-4 w-4" aria-hidden="true" /> Certifications
                 </h2>
-                <ul className="mt-4 space-y-2">
-                  {certifications.map((c) => (
-                    <li
-                      key={c}
-                      className="rounded-lg border border-border bg-card/60 px-3 py-2 text-xs leading-relaxed text-muted-foreground"
-                    >
-                      {c}
-                    </li>
-                  ))}
-                </ul>
+                {certifications.length === 0 ? (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    No certifications yet.
+                  </p>
+                ) : (
+                  <ul className="mt-4 space-y-2">
+                    {certifications.map((c) => (
+                      <li
+                        key={`${c.name}-${c.issuer}`}
+                        className="rounded-lg border border-border bg-card/60 px-3 py-2 text-xs leading-relaxed text-muted-foreground"
+                      >
+                        <span className="font-medium text-foreground">{c.name}</span>
+                        <span> — {c.issuer}</span>
+                        {c.year ? (
+                          <span className="ml-1 font-mono text-[10px] text-muted-foreground">
+                            ({c.year})
+                          </span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               <div>
                 <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-accent">
                   <GraduationCap className="h-4 w-4" aria-hidden="true" /> Education
                 </h2>
-                <ul className="mt-4 space-y-3">
-                  {education.map((e) => (
-                    <li
-                      key={e.degree}
-                      className="rounded-lg border border-border bg-card/60 p-3"
-                    >
-                      <p className="text-sm font-medium">{e.degree}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {e.school} · {e.year}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
+                {education.length === 0 ? (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    No education entries yet.
+                  </p>
+                ) : (
+                  <ul className="mt-4 space-y-3">
+                    {education.map((e) => (
+                      <li
+                        key={`${e.degree}-${e.institution}-${e.startYear}`}
+                        className="rounded-lg border border-border bg-card/60 p-3"
+                      >
+                        <p className="text-sm font-medium">{e.degree}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {e.institution} · {e.startYear} — {e.endYear ?? "Present"}
+                          {e.status === "ongoing" ? " · ongoing" : null}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               <div>
                 <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-accent">
                   Core skills
                 </h2>
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  {coreSkills.map((s) => (
-                    <Badge key={s}>{s}</Badge>
-                  ))}
-                </div>
+                {coreSkills.length === 0 ? (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    No skills yet.
+                  </p>
+                ) : (
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {coreSkills.map((s) => (
+                      <Badge key={s}>{s}</Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

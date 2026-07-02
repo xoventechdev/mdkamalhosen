@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -12,6 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/ui/field";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ImageUploader } from "@/components/ui/image-uploader";
+import { ChipInput } from "@/components/admin/chip-input";
+import { HighlightsList } from "@/components/admin/highlights-list";
+import { StatsList } from "@/components/admin/stats-list";
 import { upsertProfile } from "@/server/actions";
 import { profileSchema, type ProfileInput } from "@/lib/schemas";
 
@@ -24,6 +27,7 @@ export function ProfileForm({ initial }: ProfileFormProps) {
   const [pending, startTransition] = useTransition();
   const {
     register,
+    control,
     handleSubmit,
     setValue,
     watch,
@@ -166,6 +170,130 @@ export function ProfileForm({ initial }: ProfileFormProps) {
           <Field label="Philosophy" required error={errors.philosophy?.message} htmlFor="philosophy">
             <Textarea id="philosophy" rows={4} {...register("philosophy")} invalid={!!errors.philosophy} />
           </Field>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Marketing highlights</CardTitle>
+          <CardDescription>
+            Short phrases shown in the home page marquee bar. Tick
+            &quot;Job-seeking only&quot; on items that should disappear when
+            &quot;Looking for new opportunity&quot; is off.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Controller
+            control={control}
+            name="highlights"
+            render={({ field }) => (
+              <HighlightsList value={field.value ?? []} onChange={field.onChange} />
+            )}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Stats</CardTitle>
+          <CardDescription>
+            Four tiles shown on the home page above the bento section. The
+            color is a Tailwind text class (e.g. <code>text-accent</code>).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Controller
+            control={control}
+            name="stats"
+            render={({ field }) => (
+              <StatsList value={field.value ?? []} onChange={field.onChange} />
+            )}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Site metadata</CardTitle>
+          <CardDescription>
+            Used for SEO and the OG image on the root layout. Leave a field
+            blank to fall back to the static default.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Field
+            label="Site title"
+            htmlFor="siteTitle"
+            error={errors.siteTitle?.message}
+            hint="Used as the default browser tab title and OG title."
+          >
+            <Input id="siteTitle" {...register("siteTitle")} invalid={!!errors.siteTitle} />
+          </Field>
+          <Field
+            label="Site description"
+            htmlFor="siteDescription"
+            error={errors.siteDescription?.message}
+            hint="Used as the default meta description and OG description."
+          >
+            <Textarea
+              id="siteDescription"
+              rows={2}
+              {...register("siteDescription")}
+              invalid={!!errors.siteDescription}
+            />
+          </Field>
+          <Field
+            label="Site keywords"
+            error={errors.siteKeywords?.message as string | undefined}
+            hint="Press Enter to add each keyword as a chip."
+          >
+            <Controller
+              control={control}
+              name="siteKeywords"
+              render={({ field }) => (
+                <ChipInput
+                  value={field.value ?? []}
+                  onChange={field.onChange}
+                  placeholder="e.g. BMS Engineer"
+                />
+              )}
+            />
+          </Field>
+          <Field
+            label="Twitter handle"
+            htmlFor="twitterHandle"
+            error={errors.twitterHandle?.message}
+            hint="Including the @ sign, e.g. @mdkamalhosennn"
+          >
+            <Input
+              id="twitterHandle"
+              {...register("twitterHandle")}
+              invalid={!!errors.twitterHandle}
+            />
+          </Field>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Preferred locations</CardTitle>
+          <CardDescription>
+            Shown under the home and contact location pin only when
+            &quot;Looking for new opportunity&quot; is on.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Controller
+            control={control}
+            name="preferredLocations"
+            render={({ field }) => (
+              <ChipInput
+                value={field.value ?? []}
+                onChange={field.onChange}
+                placeholder="e.g. UK / EU"
+              />
+            )}
+          />
         </CardContent>
       </Card>
 

@@ -17,10 +17,17 @@ import {
 } from "lucide-react";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { SectionHeading } from "@/components/section-heading";
-import { StatGrid } from "@/components/stat-grid";
+import { StatGrid, type Stat } from "@/components/stat-grid";
 import { ProjectCard, type ProjectCardData } from "@/components/project-card";
-import { getFeaturedProjects, getLatestPosts, getProfile } from "@/server/queries";
+import {
+  getAllExperiences,
+  getFeaturedProjects,
+  getLatestPosts,
+  getProfile,
+  getSkillGroups,
+} from "@/server/queries";
 import { formatDate } from "@/lib/utils";
+import { SITE_DEFAULTS } from "@/lib/site-defaults";
 
 export const revalidate = 60;
 
@@ -28,22 +35,9 @@ export const revalidate = 60;
 // Static content arrays (no DB dependency — render immediately).
 // ---------------------------------------------------------------------------
 
-const proofAll = [
-  "5+ years international",
-  "Honeywell Alerton",
-  "Niagara 4 certified",
-  "KAFD commissioning",
-  "100K+ app downloads",
-  "Open to relocation anywhere",
-  "BACnet · Modbus · M-Bus",
-  "DDC controllers",
-  "Graphics",
-];
-
-// Job-seeking copy is gated by the admin "lookingToNewOpportunity" toggle so
-// the same UI can flip between "actively looking" and "established professional".
-const JOB_SEEKING_TERMS = ["Open to relocation anywhere"];
-
+// Workflow steps are static marketing copy describing how the author
+// approaches engineering work. Editing them is a code change, not a
+// content change, so they stay hardcoded.
 const workflow = [
   { step: "01", label: "Planning", icon: Sparkles, color: "text-cat-bms" },
   { step: "02", label: "Documentation", icon: Code2, color: "text-cat-software" },
@@ -52,51 +46,64 @@ const workflow = [
   { step: "05", label: "Research", icon: Smartphone, color: "text-accent" },
 ];
 
-const bmsTechTags = [
-  "Honeywell Alerton",
-  "Niagara 4",
-  "BACnet",
-  "Modbus",
-  "M-Bus",
-  "DDC",
-  "HVAC",
-  "Graphics",
-];
-
-const softwareTags = ["React", "Next.js", "Node.js", "MQTT", "ESP8266", "Android"];
-
 // ---------------------------------------------------------------------------
 // Static JSX blocks, extracted as named components.
 // Each renders synchronously inside <HomePage> with no DB call.
 // ---------------------------------------------------------------------------
 
-function Hero({ showJob }: { showJob: boolean }) {
+interface CurrentJobView {
+  role: string;
+  company: string;
+  place: string;
+  startedLabel: string;
+  project: string | null;
+  stackHead: string | null;
+  bulletsHead: string[];
+}
+
+function Hero({
+  showJob,
+  profileName,
+  profileRole,
+  profileLocation,
+  preferredLocations,
+  linkedinUrl,
+  currentJob,
+}: {
+  showJob: boolean;
+  profileName: string;
+  profileRole: string;
+  profileLocation: string;
+  preferredLocations: string[];
+  linkedinUrl: string | null;
+  currentJob: CurrentJobView | null;
+}) {
   return (
     <section className="relative overflow-hidden">
       <div className="container relative pt-16 pb-24 md:pt-24 md:pb-32 lg:pt-32 lg:pb-40">
         <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-7">
-            {showJob && (
+            {showJob && preferredLocations.length > 0 && (
               <ScrollReveal>
                 <span className="inline-flex items-center gap-2 rounded-full glass-chip px-3 py-1.5 text-xs font-medium text-foreground/90">
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-emerald-500/80" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                   </span>
-                  Open to relocation anywhere for the right opportunity
+                  Open to {preferredLocations.join(" / ")}
                 </span>
               </ScrollReveal>
             )}
 
             <ScrollReveal delay={80}>
               <p className="mt-6 font-mono text-sm text-accent">
-                {"// Md Kamal Hosen"}
+                {`// ${profileName}`}
               </p>
             </ScrollReveal>
 
             <ScrollReveal delay={120}>
               <h1 className="mt-3 max-w-4xl text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl lg:text-[4.5rem]">
-                Building Management System Engineer{" "}
+                {profileRole}{" "}
                 <span className="text-gradient">
                   commissioning HVAC plants
                 </span>{" "}
@@ -128,14 +135,16 @@ function Hero({ showJob }: { showJob: boolean }) {
                 >
                   <Download className="h-4 w-4" aria-hidden="true" /> Download CV
                 </Link>
-                <a
-                  href="https://linkedin.com/in/mdkamalhosennn"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-11 items-center gap-2 px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  LinkedIn <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-                </a>
+                {linkedinUrl && (
+                  <a
+                    href={linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-11 items-center gap-2 px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    LinkedIn <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                  </a>
+                )}
               </div>
             </ScrollReveal>
           </div>
@@ -157,49 +166,69 @@ function Hero({ showJob }: { showJob: boolean }) {
                   <span className="h-1.5 w-1.5 rounded-full bg-accent" /> Currently
                 </p>
                 <h2 className="mt-4 text-2xl font-semibold tracking-tight">
-                  Lead BMS Engineer
+                  {currentJob?.role ?? profileRole}
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  GLSAN Contracting · Riyadh, Saudi Arabia
+                  {currentJob
+                    ? `${currentJob.company} · ${currentJob.place}`
+                    : profileLocation}
                 </p>
 
-                <dl className="mt-6 grid grid-cols-3 gap-3">
-                  <div className="rounded-xl border border-border bg-card/60 p-3">
-                    <dt className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Started
-                    </dt>
-                    <dd className="mt-1 text-sm font-semibold">Sep 2025</dd>
-                  </div>
-                  <div className="rounded-xl border border-border bg-card/60 p-3">
-                    <dt className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Project
-                    </dt>
-                    <dd className="mt-1 text-sm font-semibold">KAFD</dd>
-                  </div>
-                  <div className="rounded-xl border border-border bg-card/60 p-3">
-                    <dt className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Stack
-                    </dt>
-                    <dd className="mt-1 text-sm font-semibold">Niagara 4</dd>
-                  </div>
-                </dl>
-
-                <div className="mt-6 space-y-3 border-t border-border pt-5">
-                  <div className="flex items-center gap-3 text-sm">
-                    <Briefcase className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    <span>BMS commissioning &amp; integration</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <Wrench className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    <span>HVAC control logic &amp; graphics</span>
-                  </div>
-                  {showJob && (
-                    <div className="flex items-center gap-3 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                      <span>Riyadh · open to UK / EU</span>
+                {currentJob && (
+                  <dl className="mt-6 grid grid-cols-3 gap-3">
+                    <div className="rounded-xl border border-border bg-card/60 p-3">
+                      <dt className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Started
+                      </dt>
+                      <dd className="mt-1 text-sm font-semibold">
+                        {currentJob.startedLabel}
+                      </dd>
                     </div>
-                  )}
-                </div>
+                    {currentJob.project && (
+                      <div className="rounded-xl border border-border bg-card/60 p-3">
+                        <dt className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                          Project
+                        </dt>
+                        <dd className="mt-1 text-sm font-semibold">
+                          {currentJob.project}
+                        </dd>
+                      </div>
+                    )}
+                    {currentJob.stackHead && (
+                      <div className="rounded-xl border border-border bg-card/60 p-3">
+                        <dt className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                          Stack
+                        </dt>
+                        <dd className="mt-1 text-sm font-semibold">
+                          {currentJob.stackHead}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                )}
+
+                {currentJob && currentJob.bulletsHead.length > 0 && (
+                  <div className="mt-6 space-y-3 border-t border-border pt-5">
+                    {currentJob.bulletsHead.slice(0, 2).map((b, i) => (
+                      <div key={i} className="flex items-center gap-3 text-sm">
+                        {i === 0 ? (
+                          <Briefcase className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                        ) : (
+                          <Wrench className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                        )}
+                        <span>{b}</span>
+                      </div>
+                    ))}
+                    {showJob && preferredLocations.length > 0 && (
+                      <div className="flex items-center gap-3 text-sm">
+                        <MapPin className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                        <span>
+                          {profileLocation} · open to {preferredLocations.join(" / ")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <Link
                   href="/experience"
@@ -233,17 +262,23 @@ function MarqueeBar({ items }: { items: string[] }) {
   );
 }
 
-function StatsSection() {
+function StatsSection({ stats }: { stats: Stat[] }) {
   return (
     <section className="border-b border-border">
       <div className="container py-16">
-        <StatGrid />
+        <StatGrid stats={stats} />
       </div>
     </section>
   );
 }
 
-function Bento() {
+function Bento({
+  bmsTechTags,
+  softwareTags,
+}: {
+  bmsTechTags: string[];
+  softwareTags: string[];
+}) {
   return (
     <section className="border-b border-border">
       <div className="container py-20 md:py-28">
@@ -281,16 +316,18 @@ function Bento() {
               RTU/TCP · M-Bus · DDC controllers · HVAC control logic ·
               commissioning · graphics.
             </p>
-            <div className="relative mt-6 flex flex-wrap gap-1.5">
-              {bmsTechTags.map((t) => (
-                <span
-                  key={t}
-                  className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
+            {bmsTechTags.length > 0 && (
+              <div className="relative mt-6 flex flex-wrap gap-1.5">
+                {bmsTechTags.map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
           </ScrollReveal>
 
           {/* Smaller Software card */}
@@ -315,16 +352,18 @@ function Bento() {
               React · Next.js · Node.js · Python · Prisma · Supabase · MQTT ·
               ESP8266 · Android apps (100K+ downloads).
             </p>
-            <div className="relative mt-6 flex flex-wrap gap-1.5">
-              {softwareTags.map((t) => (
-                <span
-                  key={t}
-                  className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
+            {softwareTags.length > 0 && (
+              <div className="relative mt-6 flex flex-wrap gap-1.5">
+                {softwareTags.map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
           </ScrollReveal>
         </div>
       </div>
@@ -456,11 +495,7 @@ function CTA({ showJob }: { showJob: boolean }) {
   );
 }
 
-// ---------------------------------------------------------------------------
 // Skeleton loaders — shown by <Suspense> while DB queries resolve.
-// aria-busy / role="status" gives assistive tech a hint that the region is
-// still updating.
-// ---------------------------------------------------------------------------
 
 function FeaturedProjectsSkeleton() {
   return (
@@ -500,11 +535,7 @@ function LatestPostsSkeleton() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Data-driven sections (rendered inside <Suspense>).
-// Each one calls the DB directly. If the query returns empty, we render an
-// empty state — no fallback data, no try/catch — errors bubble to error.tsx.
-// ---------------------------------------------------------------------------
+// Data-driven sections, rendered inside <Suspense>.
 
 async function FeaturedProjectsSection() {
   const projects = (await getFeaturedProjects()) as unknown as Array<{
@@ -645,24 +676,96 @@ async function LatestPostsSection() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Page composition. Static sections render immediately. Data-dependent
+// Page composition. Static sections render immediately; data-dependent
 // sections stream in via <Suspense> fallbacks while their queries resolve.
-// ---------------------------------------------------------------------------
 
 export default async function HomePage() {
-  const profile = (await getProfile()) as { lookingToNewOpportunity?: boolean } | null;
+  // Profile, current experience, and skill groups are independent — run them in parallel.
+  const [profile, experiences, skillGroups] = (await Promise.all([
+    getProfile().catch(() => null),
+    getAllExperiences().catch(() => []),
+    getSkillGroups().catch(() => []),
+  ])) as [
+    | {
+        name?: string;
+        role?: string;
+        location?: string;
+        lookingToNewOpportunity?: boolean;
+        highlights?: { text: string; jobSeekingOnly: boolean }[];
+        preferredLocations?: string[];
+        linkedinUrl?: string | null;
+        stats?: { value: string; label: string; color?: string }[];
+      }
+    | null,
+    Array<{
+      company: string;
+      role: string;
+      country: string;
+      city?: string | null;
+      startDate: Date | string;
+      current: boolean;
+      bullets: string[];
+      stack: string[];
+      marqueeProject?: string | null;
+    }>,
+    Array<{
+      name: string;
+      skills: Array<{ name: string }>;
+    }>,
+  ];
+
   const showJob = profile?.lookingToNewOpportunity ?? true;
-  const proof = showJob
-    ? proofAll
-    : proofAll.filter((item) => !JOB_SEEKING_TERMS.includes(item));
+  const profileName = profile?.name ?? SITE_DEFAULTS.name;
+  const profileRole = profile?.role ?? "Building Management System Engineer";
+  const profileLocation = profile?.location ?? "Riyadh, Saudi Arabia";
+  const preferredLocations = profile?.preferredLocations ?? [];
+  const linkedinUrl = profile?.linkedinUrl ?? null;
+
+  // Filter out job-seeking-only marquee items when the toggle is off.
+  const proofTexts = (profile?.highlights ?? [])
+    .filter((h) => showJob || !h.jobSeekingOnly)
+    .map((h) => h.text);
+
+  // Hero card derives everything from the `current: true` experience row.
+  const currentJobRaw = experiences.find((e) => e.current);
+  const currentJob: CurrentJobView | null = currentJobRaw
+    ? {
+        role: currentJobRaw.role,
+        company: currentJobRaw.company,
+        place: [currentJobRaw.city, currentJobRaw.country]
+          .filter(Boolean)
+          .join(", "),
+        startedLabel: formatDate(currentJobRaw.startDate),
+        project: currentJobRaw.marqueeProject ?? null,
+        stackHead: currentJobRaw.stack?.[0] ?? null,
+        bulletsHead: currentJobRaw.bullets ?? [],
+      }
+    : null;
+
+  // Bento tags: skills in the matching group, in the order the admin set them.
+  const bmsTechTags =
+    skillGroups.find((g) => g.name === "Building Automation")?.skills.map((s) => s.name) ??
+    [];
+  const softwareTags =
+    skillGroups.find((g) => g.name === "Programming")?.skills.map((s) => s.name) ??
+    [];
+
+  const stats: Stat[] = profile?.stats ?? [];
 
   return (
     <>
-      <Hero showJob={showJob} />
-      <MarqueeBar items={proof} />
-      <StatsSection />
-      <Bento />
+      <Hero
+        showJob={showJob}
+        profileName={profileName}
+        profileRole={profileRole}
+        profileLocation={profileLocation}
+        preferredLocations={preferredLocations}
+        linkedinUrl={linkedinUrl}
+        currentJob={currentJob}
+      />
+      {proofTexts.length > 0 && <MarqueeBar items={proofTexts} />}
+      <StatsSection stats={stats} />
+      <Bento bmsTechTags={bmsTechTags} softwareTags={softwareTags} />
 
       <Suspense fallback={<FeaturedProjectsSkeleton />}>
         <FeaturedProjectsSection />

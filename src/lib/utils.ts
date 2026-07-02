@@ -32,6 +32,24 @@ export function formatDate(
   return parts.join(" ");
 }
 
+/**
+ * Format a date with day + month + year + 24-hour time, e.g.
+ * "2 Jul 2026, 14:37". Uses UTC components for consistency with
+ * `formatDate` (the rest of the site). Used by the admin messages
+ * inbox where the precise arrival time matters.
+ */
+export function formatDateTime(date: Date | string | null | undefined): string {
+  if (date === null || date === undefined || date === "") return "—";
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return "—";
+  const day = d.getUTCDate();
+  const month = MONTHS[d.getUTCMonth()] ?? "";
+  const year = d.getUTCFullYear();
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${day} ${month} ${year}, ${hh}:${mm}`;
+}
+
 export function readingMinutes(markdown: string): number {
   const words = markdown.trim().split(/\s+/u).length;
   return Math.max(1, Math.round(words / 200));

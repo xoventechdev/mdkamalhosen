@@ -6,6 +6,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { SITE_DEFAULTS } from "@/lib/site-defaults";
 
 interface ContactFormState {
   name: string;
@@ -86,7 +87,7 @@ export function ContactForm() {
         <h3 className="text-lg font-semibold">Message received</h3>
         <p className="max-w-sm text-sm text-muted-foreground">
           I&apos;ll get back to you from{" "}
-          <span className="font-mono text-foreground">mdkamalhosennn@gmail.com</span>{" "}
+          <span className="font-mono text-foreground">{SITE_DEFAULTS.email}</span>{" "}
           within a day or two.
         </p>
         <button

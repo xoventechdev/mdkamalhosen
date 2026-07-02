@@ -6,10 +6,18 @@ import { usePathname } from "next/navigation";
 import { Menu, X, Search, ArrowRight, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navItems } from "@/lib/nav";
+import { SITE_DEFAULTS } from "@/lib/site-defaults";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { COMMAND_PALETTE_TOGGLE } from "@/components/ui/command-palette";
 
-export function SiteHeader() {
+export interface SiteHeaderProps {
+  /** Full name from the profile (e.g. "Md Kamal Hosen"). When provided,
+   *  the desktop brand text uses the first word as the highlighted name
+   *  and the rest as the muted tail, mirroring the original layout. */
+  name?: string;
+}
+
+export function SiteHeader({ name }: SiteHeaderProps = {}) {
   const [open, setOpen] = React.useState(false);
   const pathname = usePathname();
 
@@ -24,6 +32,15 @@ export function SiteHeader() {
     }
   }
 
+  // Split the profile name into "highlighted first" + "muted rest" — same
+  // visual treatment as the original hardcoded "Md Kamal / Hosen". Falls
+  // back to the same hardcoded pair when no name is passed (so the static
+  // skeleton still renders correctly during build when the profile query
+  // is skipped).
+  const displayName = name ?? SITE_DEFAULTS.name;
+  const [firstName, ...rest] = displayName.split(/\s+/u).filter(Boolean);
+  const tail = rest.join(" ");
+
   return (
     <header className="glass-header">
       <div className="container flex h-16 items-center justify-between">
@@ -35,11 +52,13 @@ export function SiteHeader() {
             <span className="font-mono text-xs">{"</>"}</span>
           </span>
           <span className="hidden sm:inline">
-            <span className="text-foreground">Md Kamal</span>
-            <span className="ml-1.5 text-muted-foreground">Hosen</span>
+            <span className="text-foreground">{firstName}</span>
+            {tail && (
+              <span className="ml-1.5 text-muted-foreground">{tail}</span>
+            )}
           </span>
           <span className="sm:hidden">
-            <span className="text-accent">{"//"}</span> kamal
+            <span className="text-accent">{"//"}</span> {(firstName ?? "kamal").toLowerCase()}
           </span>
         </Link>
 

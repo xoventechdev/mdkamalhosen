@@ -13,9 +13,8 @@ import { ContactForm } from "@/components/contact-form";
 import { absoluteUrl } from "@/lib/utils";
 import { getProfile } from "@/server/queries";
 
-// Job-seeking copy mirrors are used in metadata (and live in the JSX) so the
-// admin "lookingToNewOpportunity" toggle can flip the public contact surface
-// from "actively looking" to "established professional".
+// Job-seeking copy mirrors live in metadata too. The admin toggle flips the
+// contact surface from "actively looking" to "established professional".
 const SEEKING_DESCRIPTION =
   "Get in touch with Md Kamal Hosen — BMS Engineer, open to relocation anywhere for the right opportunity.";
 const NEUTRAL_DESCRIPTION =
@@ -53,41 +52,73 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const channels = [
-  {
-    icon: Mail,
-    label: "Email",
-    value: "mdkamalhosennn@gmail.com",
-    href: "mailto:mdkamalhosennn@gmail.com",
-    color: "text-accent",
-  },
-  {
-    icon: Phone,
-    label: "Phone",
-    value: "+966 58 347 1377",
-    href: "tel:+966583471377",
-    color: "text-cat-software",
-  },
-  {
-    icon: Linkedin,
-    label: "LinkedIn",
-    value: "linkedin.com/in/mdkamalhosennn",
-    href: "https://linkedin.com/in/mdkamalhosennn",
-    color: "text-cat-bms",
-  },
-  {
-    icon: MessageCircle,
-    label: "WhatsApp",
-    value: "+966 58 347 1377",
-    href: "https://wa.me/966583471377",
-    color: "text-cat-iot",
-  },
-];
-
 export default async function ContactPage() {
-  const profile = (await getProfile()) as { lookingToNewOpportunity?: boolean } | null;
+  const profile = (await getProfile()) as {
+    name?: string;
+    location?: string;
+    lookingToNewOpportunity?: boolean;
+    email?: string;
+    phone?: string | null;
+    linkedinUrl?: string | null;
+    whatsapp?: string | null;
+    preferredLocations?: string[];
+  } | null;
   const showJob = profile?.lookingToNewOpportunity ?? true;
   const headerDescription = showJob ? SEEKING_HEADER : NEUTRAL_HEADER;
+  const location = profile?.location ?? "Riyadh, Saudi Arabia";
+  const preferredLocations = profile?.preferredLocations ?? [];
+
+  // Derive channels from the profile. Each entry is gated on its source
+  // field being non-empty so a partially-filled profile doesn't render
+  // a dead "Phone: undefined" link.
+  const channels: Array<{
+    icon: typeof Mail;
+    label: string;
+    value: string;
+    href: string;
+    color: string;
+    external: boolean;
+  }> = [];
+  if (profile?.email) {
+    channels.push({
+      icon: Mail,
+      label: "Email",
+      value: profile.email,
+      href: `mailto:${profile.email}`,
+      color: "text-accent",
+      external: false,
+    });
+  }
+  if (profile?.phone) {
+    channels.push({
+      icon: Phone,
+      label: "Phone",
+      value: profile.phone,
+      href: `tel:${profile.phone.replace(/\s+/g, "")}`,
+      color: "text-cat-software",
+      external: false,
+    });
+  }
+  if (profile?.linkedinUrl) {
+    channels.push({
+      icon: Linkedin,
+      label: "LinkedIn",
+      value: profile.linkedinUrl.replace(/^https?:\/\//, ""),
+      href: profile.linkedinUrl,
+      color: "text-cat-bms",
+      external: true,
+    });
+  }
+  if (profile?.whatsapp) {
+    channels.push({
+      icon: MessageCircle,
+      label: "WhatsApp",
+      value: profile.whatsapp,
+      href: `https://wa.me/${profile.whatsapp.replace(/[^\d]/g, "")}`,
+      color: "text-cat-iot",
+      external: true,
+    });
+  }
 
   return (
     <>
@@ -107,39 +138,49 @@ export default async function ContactPage() {
                   Any channel works. If you have an NDA, send it before sharing
                   project details.
                 </p>
-                <ul className="mt-6 space-y-3">
-                  {channels.map((c) => (
-                    <li key={c.label}>
-                      <a
-                        href={c.href}
-                        target={c.href.startsWith("http") ? "_blank" : undefined}
-                        rel="noopener noreferrer"
-                        className="group flex items-center gap-4 rounded-2xl glass-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-card-hover"
-                      >
-                        <span
-                          className={`inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-muted ${c.color}`}
+                {channels.length === 0 ? (
+                  <p className="mt-6 text-sm text-muted-foreground">
+                    No contact channels configured. Add some in{" "}
+                    <a href="/admin/profile" className="text-accent hover:underline">
+                      Admin → Profile
+                    </a>
+                    .
+                  </p>
+                ) : (
+                  <ul className="mt-6 space-y-3">
+                    {channels.map((c) => (
+                      <li key={c.label}>
+                        <a
+                          href={c.href}
+                          target={c.external ? "_blank" : undefined}
+                          rel="noopener noreferrer"
+                          className="group flex items-center gap-4 rounded-2xl glass-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-card-hover"
                         >
-                          <c.icon className="h-5 w-5" aria-hidden="true" />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                            {c.label}
-                          </p>
-                          <p className="mt-0.5 truncate text-sm font-medium group-hover:text-accent">
-                            {c.value}
-                          </p>
-                        </div>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+                          <span
+                            className={`inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-muted ${c.color}`}
+                          >
+                            <c.icon className="h-5 w-5" aria-hidden="true" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                              {c.label}
+                            </p>
+                            <p className="mt-0.5 truncate text-sm font-medium group-hover:text-accent">
+                              {c.value}
+                            </p>
+                          </div>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <div className="mt-6 flex flex-wrap gap-4 text-sm text-muted-foreground">
                   <p className="inline-flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4" aria-hidden="true" /> Riyadh, Saudi Arabia
+                    <MapPin className="h-4 w-4" aria-hidden="true" /> {location}
                   </p>
-                  {showJob && (
+                  {showJob && preferredLocations.length > 0 && (
                     <p className="inline-flex items-center gap-1.5">
-                      <Globe className="h-4 w-4" aria-hidden="true" /> Open to relocation anywhere for the right opportunity
+                      <Globe className="h-4 w-4" aria-hidden="true" /> Open to {preferredLocations.join(" / ")}
                     </p>
                   )}
                 </div>

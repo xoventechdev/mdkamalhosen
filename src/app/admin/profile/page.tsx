@@ -28,6 +28,13 @@ export default async function AdminProfilePage() {
     availability: (row?.availability as ProfileInput["availability"]) ?? "open",
     avatarUrl: row?.avatarUrl ?? "",
     cvPdfUrl: row?.cvPdfUrl ?? "",
+    highlights: row?.highlights ?? [],
+    preferredLocations: row?.preferredLocations ?? [],
+    siteTitle: row?.siteTitle ?? "",
+    siteDescription: row?.siteDescription ?? "",
+    siteKeywords: row?.siteKeywords ?? [],
+    twitterHandle: row?.twitterHandle ?? "",
+    stats: row?.stats ?? [],
   };
 
   return (

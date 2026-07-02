@@ -1,5 +1,16 @@
 import { Schema, model, models, Types, type Model } from "mongoose";
 
+export interface ProfileHighlight {
+  text: string;
+  jobSeekingOnly: boolean;
+}
+
+export interface ProfileStat {
+  value: string;
+  label: string;
+  color?: string;
+}
+
 export interface ProfileDoc {
   name: string;
   role: string;
@@ -19,6 +30,16 @@ export interface ProfileDoc {
   availability: string;
   avatarUrl?: string | null;
   cvPdfUrl?: string | null;
+  // Marketing
+  highlights: ProfileHighlight[];
+  preferredLocations: string[];
+  // Site-wide metadata
+  siteTitle?: string;
+  siteDescription?: string;
+  siteKeywords: string[];
+  twitterHandle?: string;
+  // Stats grid
+  stats: ProfileStat[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -43,6 +64,44 @@ const ProfileSchema = new Schema<ProfileDoc>(
     availability: { type: String, default: "open" },
     avatarUrl: String,
     cvPdfUrl: String,
+    // Marketing — `highlights` items carry a `jobSeekingOnly` flag so the home
+    // marquee can hide job-seeking copy when the admin flips off
+    // `lookingToNewOpportunity`. `_id: false` keeps the array shape clean
+    // (no internal Mongoose ObjectId).
+    highlights: {
+      type: [
+        new Schema<ProfileHighlight>(
+          {
+            text: { type: String, required: true, maxlength: 80 },
+            jobSeekingOnly: { type: Boolean, default: false },
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
+    preferredLocations: { type: [String], default: [] },
+    // Site-wide metadata — these override the static defaults in
+    // src/app/layout.tsx when set. All optional so legacy profile rows
+    // keep validating without them.
+    siteTitle: { type: String, maxlength: 120 },
+    siteDescription: { type: String, maxlength: 500 },
+    siteKeywords: { type: [String], default: [] },
+    twitterHandle: { type: String, maxlength: 40 },
+    // Stats grid — admin-editable list shown on the home page.
+    stats: {
+      type: [
+        new Schema<ProfileStat>(
+          {
+            value: { type: String, required: true, maxlength: 40 },
+            label: { type: String, required: true, maxlength: 120 },
+            color: { type: String, maxlength: 60 },
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
   },
   { timestamps: true, versionKey: false, collection: "profile" },
 );

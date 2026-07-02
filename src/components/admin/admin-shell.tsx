@@ -10,10 +10,12 @@
  *   `AdminLayout` and the page Server Components.
  *
  * Behaviour:
- *   - On `/admin/login`, the sidebar and mobile header are NOT rendered,
- *     and the main content takes the full viewport (no left padding). This
- *     keeps the sign-in form clean and centred, and prevents the nav and
- *     "Sign out" button from appearing to a not-yet-authenticated visitor.
+ *   - On public auth pages (`/admin/login`, `/admin/forgot-password`,
+ *     `/admin/reset-password`), the sidebar and mobile header are NOT
+ *     rendered, and the main content takes the full viewport (no left
+ *     padding). This keeps these forms clean and centred, and prevents
+ *     the nav and "Sign out" button from appearing to a not-yet-
+ *     authenticated visitor.
  *   - On every other `/admin/*` path (gated by middleware), the full
  *     sidebar with all admin sections is shown.
  */
@@ -37,16 +39,21 @@ const nav = [
   { href: "/admin/settings", label: "Settings", iconName: "Settings" },
 ];
 
-// Single source of truth for the login route. Mirror this if the route
-// ever changes (e.g. a new auth provider page).
-const LOGIN_PATH = "/admin/login";
+// Single source of truth for the public auth pages. The middleware
+// (src/middleware.ts) also exempts these from the auth check. Mirror
+// that list here so the sidebar stays hidden on every public page.
+const PUBLIC_PATHS = new Set<string>([
+  "/admin/login",
+  "/admin/forgot-password",
+  "/admin/reset-password",
+]);
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isLogin = pathname === LOGIN_PATH;
+  const isPublic = PUBLIC_PATHS.has(pathname);
 
-  // Login page: no sidebar, no mobile header, full-width content.
-  if (isLogin) {
+  // Public auth pages: no sidebar, no mobile header, full-width content.
+  if (isPublic) {
     return (
       <div className="min-h-screen bg-muted/30">
         <Toaster richColors position="top-right" closeButton />
