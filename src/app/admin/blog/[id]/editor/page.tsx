@@ -9,6 +9,7 @@ import {
 } from "@/lib/db";
 import { BlogEditor } from "@/components/admin/blog-editor";
 import type { BlogPostInput } from "@/lib/schemas";
+import { getAiSettings } from "@/server/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +67,14 @@ export default async function AdminBlogEditorPage({ params }: PageProps) {
     tagIds: selectedTags.map((t) => t.id),
   };
 
+  // Pull AI settings (if any) so the editor's AI panel can render in the
+  // correct state without a second round-trip from the client.
+  const ai = await getAiSettings();
+  const aiStatus = {
+    configured: Boolean(ai?.configured),
+    enabled: Boolean(ai?.enabled),
+  };
+
   return (
     <div className="space-y-6">
       <Link
@@ -74,7 +83,11 @@ export default async function AdminBlogEditorPage({ params }: PageProps) {
       >
         <ChevronLeft className="h-4 w-4" /> Back to blog
       </Link>
-      <BlogEditor initial={initial} availableTags={allTags as never} />
+      <BlogEditor
+        initial={initial}
+        availableTags={allTags as never}
+        aiStatus={aiStatus}
+      />
     </div>
   );
 }

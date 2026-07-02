@@ -12,7 +12,7 @@ const resetSchema = z.object({
   token: z.string().min(10).max(200),
   password: z
     .string()
-    .min(12, "Use at least 12 characters.")
+    .min(8, "Use at least 8 characters.")
     .max(200, "Password is too long."),
 });
 

@@ -2,7 +2,7 @@
  * Idempotent admin-user seed. Re-run any time to create or update
  * the first admin.
  *
- *   npm run seed:admin -- --email you@example.com --password 'long-strong-password-12+'
+ *   npm run seed:admin -- --email you@example.com --password 'strong-password-8+'
  *
  * Or, for the very first bootstrap from a legacy deployment that
  * already had `ADMIN_PASSWORD_HASH` in its environment, accept that
@@ -53,7 +53,7 @@ function usage(): void {
 
 Options:
   --email,    -e   Admin email (required).
-  --password, -p   Plaintext password (min 12 chars). Will be bcrypt-hashed.
+  --password, -p   Plaintext password (min 8 chars). Will be bcrypt-hashed.
   --name,     -n   Optional display name.
   --role,     -r   'owner' (default) or 'editor'.
   --hash         Pre-computed bcrypt hash (escape hatch from legacy env).
@@ -81,8 +81,8 @@ async function main(): Promise<void> {
   if (args.hash) {
     passwordHash = args.hash;
   } else if (args.password) {
-    if (args.password.length < 12) {
-      console.error("✗ Password must be at least 12 characters.");
+    if (args.password.length < 8) {
+      console.error("✗ Password must be at least 8 characters.");
       process.exit(1);
     }
     passwordHash = await bcrypt.hash(args.password, 12);

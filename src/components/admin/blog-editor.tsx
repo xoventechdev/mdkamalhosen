@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { AiReviewPanel } from "@/components/admin/ai-review-panel";
 import { createBlogTag, deleteBlogPost, updateBlogPost } from "@/server/actions";
 import { blogPostSchema, type BlogPostInput } from "@/lib/schemas";
 import { readingMinutes, slugify, formatDate } from "@/lib/utils";
@@ -24,9 +25,12 @@ import { readingMinutes, slugify, formatDate } from "@/lib/utils";
 export interface BlogEditorProps {
   initial: BlogPostInput & { id: string };
   availableTags: Array<{ id: string; name: string; slug: string }>;
+  /** Pre-loaded AI settings state, used to render the AI panel correctly
+   *  on first paint without a client-side fetch. */
+  aiStatus: { configured: boolean; enabled: boolean };
 }
 
-export function BlogEditor({ initial, availableTags }: BlogEditorProps) {
+export function BlogEditor({ initial, availableTags, aiStatus }: BlogEditorProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [savingState, setSavingState] = useState<"idle" | "saving" | "saved">("idle");
@@ -236,6 +240,32 @@ export function BlogEditor({ initial, availableTags }: BlogEditorProps) {
         </div>
 
         <div className="space-y-4">
+          <AiReviewPanel
+            bodyMd={bodyMd ?? ""}
+            currentTitle={title}
+            currentExcerpt={excerpt}
+            currentMeta={metaDescription}
+            configured={aiStatus.configured}
+            enabled={aiStatus.enabled}
+            onApplyReplacement={(original, replacement) => {
+              const current = getValues("bodyMd") ?? "";
+              if (current.includes(original)) {
+                setValue("bodyMd", current.replace(original, replacement), {
+                  shouldDirty: true,
+                });
+              } else {
+                toast.error("Original text no longer matches; refresh and retry.");
+              }
+            }}
+            onApplyTitle={(t) => setValue("title", t, { shouldDirty: true })}
+            onApplyExcerpt={(e) =>
+              setValue("excerpt", e, { shouldDirty: true })
+            }
+            onApplyMeta={(m) =>
+              setValue("metaDescription", m, { shouldDirty: true })
+            }
+          />
+
           <Card>
             <CardHeader>
               <CardTitle>Status</CardTitle>

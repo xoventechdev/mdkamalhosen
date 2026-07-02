@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Plus, Pencil } from "lucide-react";
 import {
   connect,
@@ -19,12 +18,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import { createBlogPost } from "@/server/actions";
 
 export const dynamic = "force-dynamic";
 
 async function newPost() {
   "use server";
+  // Dynamic imports inside the action body — same pattern as the
+  // projects page. Statically importing `redirect` from next/navigation
+  // and the actions module at the top of this Server Component causes
+  // `redirect()` to fail to throw NEXT_REDIRECT through the form-action
+  // boundary in Next.js 15, so the user lands on a "this action didn't
+  // work" state. Dynamic imports inside the action body sidestep that.
+  const { redirect } = await import("next/navigation");
+  const { createBlogPost } = await import("@/server/actions");
   const res = await createBlogPost({
     slug: `untitled-${Date.now()}`,
     title: "Untitled post",

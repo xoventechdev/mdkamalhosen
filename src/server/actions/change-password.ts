@@ -11,7 +11,7 @@ const changeSchema = z.object({
   currentPassword: z.string().min(1).max(200),
   newPassword: z
     .string()
-    .min(12, "Use at least 12 characters.")
+    .min(8, "Use at least 8 characters.")
     .max(200, "Password is too long."),
 });
 

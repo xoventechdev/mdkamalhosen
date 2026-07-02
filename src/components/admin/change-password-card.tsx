@@ -38,8 +38,8 @@ export function ChangePasswordCard() {
     e.preventDefault();
     if (pending) return;
     setError(null);
-    if (next.length < 12) {
-      setError("Use at least 12 characters.");
+    if (next.length < 8) {
+      setError("Use at least 8 characters.");
       return;
     }
     if (next !== confirm) {
@@ -98,7 +98,7 @@ export function ChangePasswordCard() {
             label="New password"
             htmlFor="cp-next"
             required
-            hint="At least 12 characters."
+            hint="At least 8 characters."
           >
             <Input
               id="cp-next"

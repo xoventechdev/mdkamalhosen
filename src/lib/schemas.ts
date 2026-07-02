@@ -280,3 +280,70 @@ export type ReorderInput = z.input<typeof reorderSchema>;
 export type ActionResult<T = void> =
   | { ok: true; data: T; id?: string }
   | { ok: false; error: string };
+
+// ---------------------------------------------------------------------------
+// AI settings (admin → blog editor review + title/excerpt/SEO suggestions)
+// ---------------------------------------------------------------------------
+
+export const AI_PROVIDER_IDS = ["openai", "anthropic", "google", "openrouter"] as const;
+export type AiProviderId = (typeof AI_PROVIDER_IDS)[number];
+
+/** Curated default model lists per provider. Admins can override. */
+export const AI_DEFAULT_MODELS: Record<AiProviderId, readonly string[]> = {
+  openai: ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo"],
+  anthropic: ["claude-3-5-sonnet-latest", "claude-3-5-haiku-latest"],
+  google: ["gemini-1.5-pro", "gemini-1.5-flash"],
+  openrouter: [
+    "openai/gpt-4o-mini",
+    "anthropic/claude-3.5-sonnet",
+    "google/gemini-flash-1.5",
+  ],
+};
+
+/**
+ * Schema for the Settings form. The apiKey field is plaintext on the wire
+ * (server action receives it from the form) — it's encrypted at rest by
+ * the action before being written to the database.
+ */
+export const aiSettingsSchema = z.object({
+  provider: z.enum(AI_PROVIDER_IDS),
+  model: z.string().trim().min(1, "Model is required.").max(200),
+  apiKey: z
+    .string()
+    .min(1, "API key is required.")
+    .max(500, "API key is too long."),
+  enabled: z.boolean().default(true),
+});
+export type AiSettingsInput = z.input<typeof aiSettingsSchema>;
+export type AiSettingsOutput = z.output<typeof aiSettingsSchema>;
+
+/**
+ * Response shape from the AI review API. Used to validate model output
+ * before we trust it (the model can occasionally produce malformed JSON
+ * or add extra commentary — we strip everything except the schema).
+ */
+export const aiReviewSuggestionSchema = z.object({
+  suggestions: z
+    .array(
+      z.object({
+        id: z.string(),
+        original: z.string().min(1).max(2000),
+        replacement: z.string().min(1).max(2000),
+        rationale: z.string().min(1).max(500),
+        severity: z.enum(["grammar", "clarity", "style"]),
+      }),
+    )
+    .max(50),
+});
+export type AiReviewSuggestion = z.output<typeof aiReviewSuggestionSchema>;
+
+export const aiTitlesSchema = z.object({
+  title: z.string().min(1).max(200),
+  excerpt: z.string().min(1).max(500),
+});
+export type AiTitlesResult = z.output<typeof aiTitlesSchema>;
+
+export const aiSeoSchema = z.object({
+  metaDescription: z.string().min(50).max(200),
+});
+export type AiSeoResult = z.output<typeof aiSeoSchema>;

@@ -1054,3 +1054,149 @@ export async function revalidateAll(): Promise<ActionResult> {
     return fail(e);
   }
 }
+
+// ---------------------------------------------------------------------------
+// AI settings (provider, model, encrypted key, enabled flag)
+//
+// The plaintext API key is received from the form, encrypted with
+// AES-256-GCM (see src/lib/crypto-secret.ts), and stored. The key is
+// never returned to a client-facing surface — only a masked preview.
+// ---------------------------------------------------------------------------
+
+import { AiSettingsModel, AI_SETTINGS_ID } from "@/lib/db";
+import { aiSettingsSchema, type AiProviderId } from "@/lib/schemas";
+import { encryptSecret, maskSecret } from "@/lib/crypto-secret";
+
+export interface AiSettingsView {
+  provider: AiProviderId;
+  model: string;
+  keyMask: string;
+  enabled: boolean;
+  configured: true;
+}
+
+/**
+ * Returns the current AI settings (with a masked key) or null if no
+ * settings have been saved yet. Never returns the plaintext key.
+ */
+export async function getAiSettings(): Promise<AiSettingsView | null> {
+  let email: string;
+  try {
+    ({ email } = await requireAdmin());
+  } catch (e) {
+    return null;
+  }
+  void email; // We don't surface the actor for this read.
+  try {
+    await connect();
+    const doc = await AiSettingsModel.findById(AI_SETTINGS_ID).lean();
+    if (!doc) return null;
+    return {
+      provider: doc.provider as AiProviderId,
+      model: doc.model,
+      keyMask: doc.keyMask,
+      enabled: doc.enabled,
+      configured: true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Persist new AI settings. Encrypts the API key before writing.
+ * If a row already exists it is updated in place; otherwise inserted.
+ */
+export async function saveAiSettings(
+  raw: unknown,
+): Promise<ActionResult<{ keyMask: string }>> {
+  let email: string;
+  try {
+    ({ email } = await requireAdmin());
+  } catch (e) {
+    return fail(e);
+  }
+  const parsed = aiSettingsSchema.safeParse(raw);
+  if (!parsed.success) return fail(parsed.error);
+  const { provider, model, apiKey, enabled } = parsed.data;
+  try {
+    const encrypted = encryptSecret(apiKey);
+    const keyMask = maskSecret(apiKey);
+    await connect();
+    await AiSettingsModel.findByIdAndUpdate(
+      AI_SETTINGS_ID,
+      {
+        $set: {
+          provider,
+          model,
+          encryptedKey: encrypted,
+          keyMask,
+          enabled,
+          updatedBy: email,
+        },
+        $setOnInsert: { createdAt: new Date() },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+    await logActivity(email, "updated", "system", undefined, {
+      action: "saveAiSettings",
+      provider,
+      model,
+    });
+    return ok({ keyMask });
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+/**
+ * Sends a 1-token ping to the configured provider to verify the key
+ * works. Returns ok on success, error with the upstream message on
+ * failure. Requires settings to already exist.
+ */
+export async function testAiSettings(): Promise<ActionResult> {
+  let email: string;
+  try {
+    ({ email } = await requireAdmin());
+  } catch (e) {
+    return fail(e);
+  }
+  void email;
+  try {
+    await connect();
+    const doc = await AiSettingsModel.findById(AI_SETTINGS_ID).lean();
+    if (!doc) {
+      return { ok: false, error: "AI settings are not configured yet." };
+    }
+    // Decrypt is intentionally NOT imported here. The /api/admin/ai
+    // route is what should do live model calls — it carries the rate
+    // limit and the JSON-validation. We just confirm the row exists
+    // and is decryptable, then ping the provider via the API route
+    // pattern. For simplicity (and to avoid circular imports) we use
+    // the same client directly here.
+    const { decryptSecret } = await import("@/lib/crypto-secret");
+    const { callChat } = await import("@/lib/ai/client");
+    const key = decryptSecret(doc.encryptedKey);
+    const result = await callChat(
+      doc.provider as AiProviderId,
+      doc.model,
+      key,
+      [
+        {
+          role: "system",
+          content: "You are a connectivity probe. Reply with the single word OK.",
+        },
+        { role: "user", content: "ping" },
+      ],
+    );
+    if (!result.text || result.text.length === 0) {
+      return { ok: false, error: "Provider returned an empty response." };
+    }
+    return ok();
+  } catch (e) {
+    if (e && typeof e === "object" && "name" in e && (e as { name: string }).name === "AiError") {
+      return { ok: false, error: (e as Error).message };
+    }
+    return fail(e);
+  }
+}

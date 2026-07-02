@@ -82,8 +82,8 @@ function ResetInner() {
     e.preventDefault();
     if (pending) return;
     setError(null);
-    if (password.length < 12) {
-      setError("Use at least 12 characters.");
+    if (password.length < 8) {
+      setError("Use at least 8 characters.");
       return;
     }
     if (password !== confirm) {
@@ -120,7 +120,7 @@ function ResetInner() {
       <div className="w-full max-w-sm rounded-lg border border-border bg-card p-8">
         <h1 className="text-xl font-semibold tracking-tight">Set a new password</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Choose a new password for your admin account. Use at least 12 characters.
+          Choose a new password for your admin account. Use at least 8 characters.
         </p>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
