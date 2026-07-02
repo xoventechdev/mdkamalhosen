@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { SiteFooter } from "@/components/site-footer";
+import { SiteFooter, type SiteFooterProfile } from "@/components/site-footer";
 
 /**
  * Renders the global marketing <SiteFooter /> on every route EXCEPT
@@ -14,8 +14,8 @@ import { SiteFooter } from "@/components/site-footer";
  *   This tiny client component is the cheapest way to suppress the
  *   footer on /admin/* without converting RootLayout itself.
  */
-export function ConditionalSiteFooter() {
+export function ConditionalSiteFooter({ profile }: { profile?: SiteFooterProfile | null } = {}) {
   const pathname = usePathname();
   if (pathname?.startsWith("/admin")) return null;
-  return <SiteFooter />;
+  return <SiteFooter profile={profile} />;
 }

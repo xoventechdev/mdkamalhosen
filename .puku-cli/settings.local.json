@@ -11,7 +11,9 @@
       "Bash(ls:*)",
       "WebFetch(domain:www.prisma.io)",
       "Bash(xargs grep:*)",
-      "Bash(find /h/Personal/Job/Me/mdkamalhosen/src/app/api -name *.ts -type f)"
+      "Bash(find /h/Personal/Job/Me/mdkamalhosen/src/app/api -name *.ts -type f)",
+      "Bash(ls src/app/\\\\\\(site\\\\\\)/)",
+      "Bash(find src/app -name \"page.tsx\" -path \"*/\\(site\\)/*\")"
     ]
   }
 }

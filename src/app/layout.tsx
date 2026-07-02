@@ -160,6 +160,35 @@ async function loadSiteJsonLd() {
   }
 }
 
+async function loadFooterProfile() {
+  // Pulls just the fields the SiteFooter needs (name, location, social URLs,
+  // and the job-seeking toggle) so the footer can hide "Currently available"
+  // and adjust the location line when the admin disables that signal.
+  try {
+    const profile = (await getProfile()) as unknown as {
+      name: string;
+      location: string;
+      email: string;
+      linkedinUrl?: string | null;
+      githubUrl?: string | null;
+      whatsapp?: string | null;
+      lookingToNewOpportunity?: boolean;
+    } | null;
+    if (!profile) return null;
+    return {
+      name: profile.name,
+      location: profile.location,
+      email: profile.email,
+      linkedinUrl: profile.linkedinUrl ?? null,
+      githubUrl: profile.githubUrl ?? null,
+      whatsapp: profile.whatsapp ?? null,
+      lookingToNewOpportunity: profile.lookingToNewOpportunity ?? true,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default async function RootLayout({
   children,
 }: {
@@ -167,7 +196,10 @@ export default async function RootLayout({
 }) {
   console.log("[layout][loadSiteJsonLd] start");
   const layoutT0 = Date.now();
-  const jsonLd = await loadSiteJsonLd();
+  const [jsonLd, footerProfile] = await Promise.all([
+    loadSiteJsonLd(),
+    loadFooterProfile(),
+  ]);
   const layoutMs = Date.now() - layoutT0;
   console.log(`[layout][loadSiteJsonLd] end ${layoutMs}ms`);
   if (layoutMs > 1000) {
@@ -200,7 +232,7 @@ export default async function RootLayout({
           <main id="main" className="relative z-10 flex-1">
             {children}
           </main>
-          <ConditionalSiteFooter />
+          <ConditionalSiteFooter profile={footerProfile} />
           <CommandPalette />
           <Toaster richColors position="top-right" closeButton />
           {/* Site-wide structured data (Person + WebSite with SearchAction). */}

@@ -71,9 +71,9 @@ export const searchIndex: SearchItem[] = [
   {
     type: "route",
     title: "Contact",
-    subtitle: "Email, LinkedIn, WhatsApp — open to relocation",
+    subtitle: "Email, LinkedIn, WhatsApp",
     href: "/contact",
-    keywords: ["contact", "email", "phone", "whatsapp", "linkedin", "relocate"],
+    keywords: ["contact", "email", "phone", "whatsapp", "linkedin"],
   },
   {
     type: "route",

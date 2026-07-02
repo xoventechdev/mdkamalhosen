@@ -6,6 +6,7 @@ export interface ProfileDoc {
   tagline: string;
   location: string;
   relocate: boolean;
+  lookingToNewOpportunity: boolean;
   email: string;
   phone?: string | null;
   linkedinUrl?: string | null;
@@ -29,6 +30,7 @@ const ProfileSchema = new Schema<ProfileDoc>(
     tagline: { type: String, required: true },
     location: { type: String, required: true },
     relocate: { type: Boolean, default: true },
+    lookingToNewOpportunity: { type: Boolean, default: true },
     email: { type: String, required: true },
     phone: String,
     linkedinUrl: String,

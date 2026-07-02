@@ -60,6 +60,7 @@ export const profileSchema = z.object({
   tagline: trimmedString(240),
   location: trimmedString(120),
   relocate: z.boolean().default(true),
+  lookingToNewOpportunity: z.boolean().default(true),
   email: z.string().email().max(200),
   phone: optionalString(40),
   linkedinUrl: optionalString(300),

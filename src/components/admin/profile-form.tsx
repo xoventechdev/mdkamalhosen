@@ -91,6 +91,21 @@ export function ProfileForm({ initial }: ProfileFormProps) {
               Show "Relocate: yes" badge
             </label>
           </Field>
+          <Field
+            label="Looking for new opportunity"
+            htmlFor="lookingToNewOpportunity"
+            hint="Show job-seeking signals (open to relocation, available pill, hire-me CTAs) on the public site."
+            className="md:col-span-2"
+          >
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                {...register("lookingToNewOpportunity")}
+                className="h-4 w-4 rounded border-input"
+              />
+              Show job-seeking signals on the public site
+            </label>
+          </Field>
         </CardContent>
       </Card>
 

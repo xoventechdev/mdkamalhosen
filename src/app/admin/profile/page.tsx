@@ -15,6 +15,7 @@ export default async function AdminProfilePage() {
     tagline: row?.tagline ?? "",
     location: row?.location ?? "",
     relocate: row?.relocate ?? true,
+    lookingToNewOpportunity: row?.lookingToNewOpportunity ?? true,
     email: row?.email ?? "",
     phone: row?.phone ?? "",
     linkedinUrl: row?.linkedinUrl ?? "",

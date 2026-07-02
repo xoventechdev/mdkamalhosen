@@ -40,6 +40,7 @@ async function seedProfile() {
           "Building Management System Engineer commissioning HVAC plants and shipping the software that runs them.",
         location: "Riyadh, Saudi Arabia",
         relocate: true,
+        lookingToNewOpportunity: true,
         email: "mdkamalhosennn@gmail.com",
         phone: "+966 58 347 1377",
         linkedinUrl: "https://linkedin.com/in/mdkamalhosennn",

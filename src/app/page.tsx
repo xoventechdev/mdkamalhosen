@@ -19,7 +19,7 @@ import { ScrollReveal } from "@/components/scroll-reveal";
 import { SectionHeading } from "@/components/section-heading";
 import { StatGrid } from "@/components/stat-grid";
 import { ProjectCard, type ProjectCardData } from "@/components/project-card";
-import { getFeaturedProjects, getLatestPosts } from "@/server/queries";
+import { getFeaturedProjects, getLatestPosts, getProfile } from "@/server/queries";
 import { formatDate } from "@/lib/utils";
 
 export const revalidate = 60;
@@ -28,7 +28,7 @@ export const revalidate = 60;
 // Static content arrays (no DB dependency — render immediately).
 // ---------------------------------------------------------------------------
 
-const proof = [
+const proofAll = [
   "5+ years international",
   "Honeywell Alerton",
   "Niagara 4 certified",
@@ -39,6 +39,10 @@ const proof = [
   "DDC controllers",
   "Graphics",
 ];
+
+// Job-seeking copy is gated by the admin "lookingToNewOpportunity" toggle so
+// the same UI can flip between "actively looking" and "established professional".
+const JOB_SEEKING_TERMS = ["Open to relocation anywhere"];
 
 const workflow = [
   { step: "01", label: "Planning", icon: Sparkles, color: "text-cat-bms" },
@@ -66,21 +70,23 @@ const softwareTags = ["React", "Next.js", "Node.js", "MQTT", "ESP8266", "Android
 // Each renders synchronously inside <HomePage> with no DB call.
 // ---------------------------------------------------------------------------
 
-function Hero() {
+function Hero({ showJob }: { showJob: boolean }) {
   return (
     <section className="relative overflow-hidden">
       <div className="container relative pt-16 pb-24 md:pt-24 md:pb-32 lg:pt-32 lg:pb-40">
         <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-7">
-            <ScrollReveal>
-              <span className="inline-flex items-center gap-2 rounded-full glass-chip px-3 py-1.5 text-xs font-medium text-foreground/90">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-emerald-500/80" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            {showJob && (
+              <ScrollReveal>
+                <span className="inline-flex items-center gap-2 rounded-full glass-chip px-3 py-1.5 text-xs font-medium text-foreground/90">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-emerald-500/80" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                  </span>
+                  Open to relocation anywhere for the right opportunity
                 </span>
-                Open to relocation anywhere for the right opportunity
-              </span>
-            </ScrollReveal>
+              </ScrollReveal>
+            )}
 
             <ScrollReveal delay={80}>
               <p className="mt-6 font-mono text-sm text-accent">
@@ -187,10 +193,12 @@ function Hero() {
                     <Wrench className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     <span>HVAC control logic &amp; graphics</span>
                   </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    <span>Riyadh · open to UK / EU</span>
-                  </div>
+                  {showJob && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                      <span>Riyadh · open to UK / EU</span>
+                    </div>
+                  )}
                 </div>
 
                 <Link
@@ -208,12 +216,12 @@ function Hero() {
   );
 }
 
-function MarqueeBar() {
+function MarqueeBar({ items }: { items: string[] }) {
   return (
     <section className="relative border-y border-border bg-card/30 py-4 backdrop-blur-sm">
       <div className="overflow-hidden">
         <div className="marquee-track flex w-max items-center gap-12 px-6 text-sm text-muted-foreground">
-          {[...proof, ...proof].map((item, i) => (
+          {[...items, ...items].map((item, i) => (
             <span key={i} className="flex items-center gap-2 whitespace-nowrap">
               <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" />
               {item}
@@ -358,46 +366,91 @@ function Workflow() {
   );
 }
 
-function CTA() {
+function CTA({ showJob }: { showJob: boolean }) {
   return (
     <section className="relative">
       <div className="container relative py-24 text-center md:py-32">
-        <ScrollReveal>
-          <span className="inline-flex items-center gap-2 rounded-full glass-chip px-3 py-1.5 text-xs font-medium text-foreground/90">
-            <Sparkles className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
-            Open to opportunities
-          </span>
-        </ScrollReveal>
-        <ScrollReveal delay={120}>
-          <h2 className="mx-auto mt-6 max-w-3xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
-            Looking for a BMS engineer{" "}
-            <span className="text-gradient">who also builds</span>?
-          </h2>
-        </ScrollReveal>
-        <ScrollReveal delay={200}>
-          <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-            Open to relocation anywhere for the right opportunity. Let&apos;s
-            talk about your next project.
-          </p>
-        </ScrollReveal>
-        <ScrollReveal delay={260}>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/contact"
-              className="group inline-flex h-11 items-center gap-2 rounded-lg bg-gradient-to-br from-violet to-accent px-6 text-sm font-medium text-white shadow-glow-violet transition-all"
-            >
-              <Mail className="h-4 w-4" aria-hidden="true" />
-              Get in touch
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-            </Link>
-            <Link
-              href="/cv"
-              className="inline-flex h-11 items-center gap-2 rounded-lg glass-chip px-6 text-sm font-medium backdrop-blur-md transition-all hover:bg-card"
-            >
-              <Download className="h-4 w-4" aria-hidden="true" /> CV
-            </Link>
-          </div>
-        </ScrollReveal>
+        {showJob ? (
+          <>
+            <ScrollReveal>
+              <span className="inline-flex items-center gap-2 rounded-full glass-chip px-3 py-1.5 text-xs font-medium text-foreground/90">
+                <Sparkles className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+                Open to opportunities
+              </span>
+            </ScrollReveal>
+            <ScrollReveal delay={120}>
+              <h2 className="mx-auto mt-6 max-w-3xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
+                Looking for a BMS engineer{" "}
+                <span className="text-gradient">who also builds</span>?
+              </h2>
+            </ScrollReveal>
+            <ScrollReveal delay={200}>
+              <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
+                Open to relocation anywhere for the right opportunity. Let&apos;s
+                talk about your next project.
+              </p>
+            </ScrollReveal>
+            <ScrollReveal delay={260}>
+              <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+                <Link
+                  href="/contact"
+                  className="group inline-flex h-11 items-center gap-2 rounded-lg bg-gradient-to-br from-violet to-accent px-6 text-sm font-medium text-white shadow-glow-violet transition-all"
+                >
+                  <Mail className="h-4 w-4" aria-hidden="true" />
+                  Get in touch
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                </Link>
+                <Link
+                  href="/cv"
+                  className="inline-flex h-11 items-center gap-2 rounded-lg glass-chip px-6 text-sm font-medium backdrop-blur-md transition-all hover:bg-card"
+                >
+                  <Download className="h-4 w-4" aria-hidden="true" /> CV
+                </Link>
+              </div>
+            </ScrollReveal>
+          </>
+        ) : (
+          // Neutral CTA: re-flows the same visual weight without job-seeking copy.
+          <>
+            <ScrollReveal>
+              <span className="inline-flex items-center gap-2 rounded-full glass-chip px-3 py-1.5 text-xs font-medium text-foreground/90">
+                <Sparkles className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+                Available for select engagements
+              </span>
+            </ScrollReveal>
+            <ScrollReveal delay={120}>
+              <h2 className="mx-auto mt-6 max-w-3xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
+                Have a building project{" "}
+                <span className="text-gradient">in mind</span>?
+              </h2>
+            </ScrollReveal>
+            <ScrollReveal delay={200}>
+              <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
+                Whether it&apos;s commissioning a new BMS network, integrating
+                third-party systems, or shipping the software that ties it all
+                together — let&apos;s talk.
+              </p>
+            </ScrollReveal>
+            <ScrollReveal delay={260}>
+              <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+                <Link
+                  href="/contact"
+                  className="group inline-flex h-11 items-center gap-2 rounded-lg bg-gradient-to-br from-violet to-accent px-6 text-sm font-medium text-white shadow-glow-violet transition-all"
+                >
+                  <Mail className="h-4 w-4" aria-hidden="true" />
+                  Get in touch
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                </Link>
+                <Link
+                  href="/projects"
+                  className="inline-flex h-11 items-center gap-2 rounded-lg glass-chip px-6 text-sm font-medium backdrop-blur-md transition-all hover:bg-card"
+                >
+                  See recent work
+                </Link>
+              </div>
+            </ScrollReveal>
+          </>
+        )}
       </div>
     </section>
   );
@@ -597,11 +650,17 @@ async function LatestPostsSection() {
 // sections stream in via <Suspense> fallbacks while their queries resolve.
 // ---------------------------------------------------------------------------
 
-export default function HomePage() {
+export default async function HomePage() {
+  const profile = (await getProfile()) as { lookingToNewOpportunity?: boolean } | null;
+  const showJob = profile?.lookingToNewOpportunity ?? true;
+  const proof = showJob
+    ? proofAll
+    : proofAll.filter((item) => !JOB_SEEKING_TERMS.includes(item));
+
   return (
     <>
-      <Hero />
-      <MarqueeBar />
+      <Hero showJob={showJob} />
+      <MarqueeBar items={proof} />
       <StatsSection />
       <Bento />
 
@@ -615,7 +674,7 @@ export default function HomePage() {
         <LatestPostsSection />
       </Suspense>
 
-      <CTA />
+      <CTA showJob={showJob} />
     </>
   );
 }

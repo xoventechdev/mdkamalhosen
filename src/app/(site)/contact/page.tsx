@@ -11,31 +11,47 @@ import { PageHeader } from "@/components/page-header";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { ContactForm } from "@/components/contact-form";
 import { absoluteUrl } from "@/lib/utils";
+import { getProfile } from "@/server/queries";
 
-const ogImage = absoluteUrl(
-  "/api/og?type=default&title=Contact&subtitle=Open+to+relocation+anywhere+for+the+right+opportunity",
-);
+// Job-seeking copy mirrors are used in metadata (and live in the JSX) so the
+// admin "lookingToNewOpportunity" toggle can flip the public contact surface
+// from "actively looking" to "established professional".
+const SEEKING_DESCRIPTION =
+  "Get in touch with Md Kamal Hosen — BMS Engineer, open to relocation anywhere for the right opportunity.";
+const NEUTRAL_DESCRIPTION =
+  "Get in touch with Md Kamal Hosen — BMS Engineer.";
+const SEEKING_HEADER =
+  "I'm open to relocation anywhere for the right opportunity. Recruiters, contractors, and consultants welcome — I usually reply within a day or two.";
+const NEUTRAL_HEADER =
+  "Recruiters, contractors, and consultants welcome — I usually reply within a day or two.";
+const SEEKING_OG_SUBTITLE = "Open+to+relocation+anywhere+for+the+right+opportunity";
+const NEUTRAL_OG_SUBTITLE = "Recruiters,+contractors,+and+consultants+welcome";
 
-export const metadata: Metadata = {
-  title: "Contact",
-  description:
-    "Get in touch with Md Kamal Hosen — BMS Engineer, open to relocation anywhere for the right opportunity.",
-  alternates: { canonical: "/contact" },
-  openGraph: {
+export async function generateMetadata(): Promise<Metadata> {
+  const profile = (await getProfile()) as { lookingToNewOpportunity?: boolean } | null;
+  const showJob = profile?.lookingToNewOpportunity ?? true;
+  const description = showJob ? SEEKING_DESCRIPTION : NEUTRAL_DESCRIPTION;
+  const ogSubtitle = showJob ? SEEKING_OG_SUBTITLE : NEUTRAL_OG_SUBTITLE;
+  const ogImage = absoluteUrl(`/api/og?type=default&title=Contact&subtitle=${ogSubtitle}`);
+  return {
     title: "Contact",
-    description:
-      "Get in touch with Md Kamal Hosen — BMS Engineer, open to relocation anywhere for the right opportunity.",
-    url: absoluteUrl("/contact"),
-    type: "website",
-    images: [{ url: ogImage, width: 1200, height: 630, alt: "Contact — Md Kamal Hosen" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Contact — Md Kamal Hosen",
-    description: "Reach out via email, phone, LinkedIn, or WhatsApp.",
-    images: [ogImage],
-  },
-};
+    description,
+    alternates: { canonical: "/contact" },
+    openGraph: {
+      title: "Contact",
+      description,
+      url: absoluteUrl("/contact"),
+      type: "website",
+      images: [{ url: ogImage, width: 1200, height: 630, alt: "Contact — Md Kamal Hosen" }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "Contact — Md Kamal Hosen",
+      description: "Reach out via email, phone, LinkedIn, or WhatsApp.",
+      images: [ogImage],
+    },
+  };
+}
 
 const channels = [
   {
@@ -68,13 +84,17 @@ const channels = [
   },
 ];
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const profile = (await getProfile()) as { lookingToNewOpportunity?: boolean } | null;
+  const showJob = profile?.lookingToNewOpportunity ?? true;
+  const headerDescription = showJob ? SEEKING_HEADER : NEUTRAL_HEADER;
+
   return (
     <>
       <PageHeader
         eyebrow="Contact"
         title="Let's talk about your next building"
-        description="I'm open to relocation anywhere for the right opportunity. Recruiters, contractors, and consultants welcome — I usually reply within a day or two."
+        description={headerDescription}
       />
       <section>
         <div className="container py-12 md:py-20">
@@ -117,17 +137,21 @@ export default function ContactPage() {
                   <p className="inline-flex items-center gap-1.5">
                     <MapPin className="h-4 w-4" aria-hidden="true" /> Riyadh, Saudi Arabia
                   </p>
-                  <p className="inline-flex items-center gap-1.5">
-                    <Globe className="h-4 w-4" aria-hidden="true" /> Open to relocation anywhere for the right opportunity
-                  </p>
+                  {showJob && (
+                    <p className="inline-flex items-center gap-1.5">
+                      <Globe className="h-4 w-4" aria-hidden="true" /> Open to relocation anywhere for the right opportunity
+                    </p>
+                  )}
                 </div>
-                <div className="mt-6 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-emerald-500/80" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                  </span>
-                  Currently available
-                </div>
+                {showJob && (
+                  <div className="mt-6 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-emerald-500/80" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                    </span>
+                    Currently available
+                  </div>
+                )}
               </div>
             </ScrollReveal>
 

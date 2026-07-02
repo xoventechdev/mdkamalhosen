@@ -56,10 +56,16 @@ export function ContactForm() {
     }
     setSubmitting(true);
     try {
-      const formData = new FormData(e.currentTarget);
+      const form = e.currentTarget;
+      const formData = new FormData(form);
+      const payload: Record<string, string> = {};
+      formData.forEach((value, key) => {
+        if (typeof value === "string") payload[key] = value;
+      });
       const res = await fetch("/api/contact", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Request failed");
       setSubmitted(true);
