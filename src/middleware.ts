@@ -44,7 +44,14 @@ export async function middleware(request: NextRequest) {
   // Only gate /admin pages — API routes are handled in their own
   // route handlers (see comment above). Everything else passes
   // through untouched.
-  if (!path.startsWith("/admin/")) return NextResponse.next();
+  //
+  // Note: `/admin` (dashboard) does NOT start with `/admin/` — it
+  // starts with `/admin` (no trailing slash). We must check both
+  // `/admin` exactly and the `/admin/...` prefix, otherwise the
+  // dashboard would bypass auth entirely.
+  const isAdminPage =
+    path === "/admin" || path.startsWith("/admin/");
+  if (!isAdminPage) return NextResponse.next();
 
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const payload = await verifySession(token);
