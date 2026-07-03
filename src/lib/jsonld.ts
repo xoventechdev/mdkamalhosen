@@ -219,7 +219,12 @@ export interface CreativeWorkInput {
   coverUrl?: string | null;
   techStack?: string[];
   category?: string;
-  year?: number;
+  /**
+   * Free-form year label. Currently `string` for new data (e.g.
+   * `"2024 - Present"`); the legacy `number` form is still
+   * accepted for any documents written before the change.
+   */
+  year?: number | string;
   createdAt?: Date | string | null;
   updatedAt?: Date | string | null;
   type?: "software" | "bms" | "iot" | "android" | "general";

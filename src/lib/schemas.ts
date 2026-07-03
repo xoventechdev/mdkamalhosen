@@ -194,7 +194,14 @@ export const projectSchema = z.object({
     ),
   title: trimmedString(200),
   category: z.enum(["bms", "software", "iot", "android"]).default("bms"),
-  year: intFromString.min(1990).max(2100),
+  // Free-form year label. Accepts values like "2024", "2024 - 2026", or
+  // "2025 - Present". Single 4-digit years remain valid as strings
+  // ("2024") so existing data renders unchanged. Validated only for
+  // length — the admin form suggests formats via a hint.
+  year: z
+    .string()
+    .transform((s) => s.trim())
+    .pipe(z.string().min(1, "Year is required").max(40)),
   clientType: optionalString(120),
   excerpt: trimmedString(280),
   coverUrl: optionalString(500),

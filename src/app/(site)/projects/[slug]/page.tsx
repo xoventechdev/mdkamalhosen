@@ -102,7 +102,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     coverUrl?: string | null;
     status: string;
     category: string;
-    year: number;
+    year: string;
     clientType?: string | null;
     techStack: string[];
     problem?: string | null;
@@ -123,7 +123,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     excerpt: string;
     coverUrl?: string | null;
     category: string;
-    year: number;
+    year: string;
     techStack: string[];
   }>;
   const idx = all.findIndex((p) => p.slug === slug);

@@ -31,6 +31,12 @@ export interface ProjectCardData {
   title: string;
   excerpt: string;
   category: "bms" | "software" | "iot" | "android";
+  /**
+   * Free-form year label. Accepts legacy `number` years (e.g. 2024)
+   * for backwards compatibility with projects created before the
+   * flexible label was introduced, plus new string values like
+   * `"2024"`, `"2024 - 2026"`, or `"2025 - Present"`.
+   */
   year?: number | string;
   techStack?: string[];
   coverUrl?: string;

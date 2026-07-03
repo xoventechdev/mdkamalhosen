@@ -148,8 +148,21 @@ export function ProjectForm({ initial, featuredCount }: ProjectFormProps) {
               <option value="android">Android</option>
             </Select>
           </Field>
-          <Field label="Year" required htmlFor="year" error={errors.year?.message}>
-            <Input id="year" type="number" min={1990} max={2100} {...register("year")} invalid={!!errors.year} />
+          <Field
+            label="Year"
+            required
+            htmlFor="year"
+            error={errors.year?.message}
+            hint='e.g. "2024", "2024 - 2026", or "2025 - Present" for ongoing projects.'
+          >
+            <Input
+              id="year"
+              type="text"
+              maxLength={40}
+              {...register("year")}
+              invalid={!!errors.year}
+              placeholder="2024 or 2024 - 2026 or 2025 - Present"
+            />
           </Field>
           <Field label="Client type" htmlFor="clientType" error={errors.clientType?.message} hint="e.g. Commercial Buildings, Personal project">
             <Input id="clientType" {...register("clientType")} invalid={!!errors.clientType} />

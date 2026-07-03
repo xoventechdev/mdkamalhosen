@@ -560,7 +560,7 @@ async function FeaturedProjectsSection() {
     title: string;
     excerpt: string;
     category: string;
-    year: number;
+    year: string;
     coverUrl?: string | null;
     techStack: string[];
   }>;

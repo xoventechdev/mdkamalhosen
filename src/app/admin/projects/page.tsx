@@ -23,7 +23,7 @@ async function createNewProject() {
     slug: `untitled-${Date.now()}`,
     title: "Untitled project",
     category: "bms",
-    year: new Date().getFullYear(),
+    year: String(new Date().getFullYear()),
     excerpt: "Click to edit this project's description.",
     techStack: [],
     galleryImages: [],
@@ -46,7 +46,7 @@ export default async function AdminProjectsPage() {
     title: string;
     slug: string;
     category: string;
-    year: number;
+    year: string;
     status: string;
     featured: boolean;
   }>;

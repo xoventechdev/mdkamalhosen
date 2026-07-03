@@ -363,7 +363,12 @@ type ProjectSeed = {
   slug: string;
   title: string;
   category: "bms" | "software" | "iot" | "android";
-  year: number;
+  /**
+   * Free-form year label. Stored as a string so the public surface
+   * prints whatever the admin entered. Existing single-year seeds
+   * keep their value as a string (e.g. `"2024"`).
+   */
+  year: string;
   clientType: string;
   excerpt: string;
   problem: string;
@@ -383,7 +388,7 @@ const projects: ProjectSeed[] = [
     slug: "kafd-bms-commissioning",
     title: "KAFD District — BMS Commissioning",
     category: "bms",
-    year: 2025,
+    year: "2025",
     clientType: "Commercial district (anonymised)",
     excerpt:
       "Commissioning BMS networks across the King Abdullah Financial District.",
@@ -406,7 +411,7 @@ const projects: ProjectSeed[] = [
     slug: "red-palace-bms",
     title: "Red Palace — BMS Integration",
     category: "bms",
-    year: 2024,
+    year: "2024",
     clientType: "Heritage commercial site (anonymised)",
     excerpt:
       "BMS commissioning and graphics deliverables for a heritage commercial site.",
@@ -425,7 +430,7 @@ const projects: ProjectSeed[] = [
     slug: "resume-builder",
     title: "Resume Builder",
     category: "software",
-    year: 2024,
+    year: "2024",
     clientType: "Personal project",
     excerpt:
       "A web tool to generate role-targeted resumes from structured data.",
@@ -448,7 +453,7 @@ const projects: ProjectSeed[] = [
     slug: "attendance-system",
     title: "Attendance System",
     category: "software",
-    year: 2023,
+    year: "2023",
     clientType: "Personal project",
     excerpt:
       "Time-and-attendance tracking built for small engineering teams.",
@@ -467,7 +472,7 @@ const projects: ProjectSeed[] = [
     slug: "iot-dashboard",
     title: "IoT Dashboard",
     category: "iot",
-    year: 2023,
+    year: "2023",
     clientType: "Personal project",
     excerpt:
       "Real-time MQTT dashboard for ESP8266 sensor networks.",
@@ -486,7 +491,7 @@ const projects: ProjectSeed[] = [
     slug: "android-100k-downloads",
     title: "Android App — 100K+ Downloads",
     category: "android",
-    year: 2022,
+    year: "2022",
     clientType: "Google Play",
     excerpt:
       "Published Android application with over 100,000 downloads.",

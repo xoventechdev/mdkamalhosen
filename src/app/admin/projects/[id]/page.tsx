@@ -23,7 +23,7 @@ export default async function AdminProjectEditorPage({ params }: PageProps) {
     slug: string;
     title: string;
     category: ProjectInput["category"];
-    year: number;
+    year: string;
     clientType?: string | null;
     excerpt: string;
     coverUrl?: string | null;

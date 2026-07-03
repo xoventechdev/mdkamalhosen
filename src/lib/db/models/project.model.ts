@@ -16,7 +16,12 @@ export interface ProjectDoc {
   slug: string;
   title: string;
   category: ProjectCategoryValue;
-  year: number;
+  /**
+   * Free-form year label. Examples: "2024", "2024 - 2026",
+   * "2025 - Present". Stored as a string so the public surface
+   * prints whatever the admin entered.
+   */
+  year: string;
   clientType?: string | null;
   excerpt: string;
   coverUrl?: string | null;
@@ -45,7 +50,7 @@ const ProjectSchema = new Schema<ProjectDoc>(
       enum: PROJECT_CATEGORIES,
       default: "bms",
     },
-    year: { type: Number, required: true },
+    year: { type: String, required: true },
     clientType: String,
     excerpt: { type: String, required: true },
     coverUrl: String,

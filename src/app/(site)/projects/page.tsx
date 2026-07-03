@@ -54,7 +54,7 @@ async function loadProjects(): Promise<ProjectCardData[]> {
     title: string;
     excerpt: string;
     category: string;
-    year: number;
+    year: string;
     techStack: string[];
   }>;
   return rows.map((p) => ({
