@@ -161,10 +161,28 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         ])]}
       />
 
-      {/* Cover band */}
+      {/* Cover band — shows the uploaded `coverUrl` as a full-bleed
+          image with a category-tinted gradient as a fallback when no
+          cover is set. The bottom gradient keeps the page header
+          legible regardless of the underlying image. */}
       <section className="relative overflow-hidden border-b border-border">
-        <div className={cn("aspect-[21/9] w-full md:aspect-[21/7]", coverClass)} aria-hidden="true" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/40 to-background" aria-hidden="true" />
+        {project.coverUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={project.coverUrl}
+            alt={`${project.title} cover`}
+            className="aspect-[21/9] w-full object-cover md:aspect-[21/7]"
+          />
+        ) : (
+          <div
+            className={cn("aspect-[21/9] w-full md:aspect-[21/7]", coverClass)}
+            aria-hidden="true"
+          />
+        )}
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-background/40 to-background"
+          aria-hidden="true"
+        />
       </section>
 
       <PageHeader

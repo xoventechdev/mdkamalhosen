@@ -190,9 +190,8 @@ export function GalleryUploader({
           </div>
         ))}
         <button
-          ref={inputRef as unknown as React.RefObject<HTMLButtonElement>}
           type="button"
-          onClick={() => inputRef.current?.querySelector("input")?.click()}
+          onClick={() => inputRef.current?.click()}
           disabled={busy}
           className="flex h-24 w-32 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border text-xs text-muted-foreground transition-colors hover:bg-muted/40 disabled:opacity-60"
         >

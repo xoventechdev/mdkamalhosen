@@ -596,6 +596,9 @@ async function FeaturedProjectsSection() {
     excerpt: p.excerpt,
     category: p.category as ProjectCardData["category"],
     year: p.year,
+    // Forward the cover URL so the home card renders the uploaded
+    // image instead of the gradient placeholder.
+    coverUrl: p.coverUrl ?? undefined,
     techStack: p.techStack,
   }));
 
