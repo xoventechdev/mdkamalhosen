@@ -37,9 +37,18 @@ export function SiteHeader({ name }: SiteHeaderProps = {}) {
   // back to the same hardcoded pair when no name is passed (so the static
   // skeleton still renders correctly during build when the profile query
   // is skipped).
+  //
+  // For the cramped mobile fallback we prefer the middle name (e.g.
+  // "Kamal" in "Md Kamal Hosen") because it's the most recognizable
+  // part of the brand. If there's no middle name we fall back to the
+  // first name, and if no name is passed at all we use "kamal" so the
+  // static build still renders something.
   const displayName = name ?? SITE_DEFAULTS.name;
-  const [firstName, ...rest] = displayName.split(/\s+/u).filter(Boolean);
-  const tail = rest.join(" ");
+  const parts = displayName.split(/\s+/u).filter(Boolean);
+  const firstName = parts[0];
+  const middleName = parts[1];
+  const tail = parts.slice(1).join(" ");
+  const shortName = (middleName ?? firstName ?? "kamal").toLowerCase();
 
   return (
     <header className="glass-header">
@@ -64,7 +73,7 @@ export function SiteHeader({ name }: SiteHeaderProps = {}) {
             )}
           </span>
           <span className="xs:hidden">
-            <span className="text-accent">{"//"}</span> {(firstName ?? "kamal").toLowerCase()}
+            <span className="text-accent">{"//"}</span> {shortName}
           </span>
         </Link>
 
