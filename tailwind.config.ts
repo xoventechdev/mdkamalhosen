@@ -3,6 +3,17 @@ export default {
   darkMode: "class",
   content: ["./src/**/*.{ts,tsx,mdx}"],
   theme: {
+    // Add an extra-small breakpoint so the brand can show the full
+    // owner name on most modern phones (≥475px) without waiting for
+    // Tailwind's stock `sm:` at 640px.
+    screens: {
+      xs: "475px",
+      sm: "640px",
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+      "2xl": "1536px",
+    },
     container: {
       center: true,
       padding: { DEFAULT: "1.25rem", sm: "1.5rem", lg: "2rem" },

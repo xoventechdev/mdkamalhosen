@@ -51,13 +51,19 @@ export function SiteHeader({ name }: SiteHeaderProps = {}) {
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-violet text-accent-foreground shadow-glow transition-transform group-hover:scale-105">
             <span className="font-mono text-xs">{"</>"}</span>
           </span>
-          <span className="hidden sm:inline">
+          {/* Brand text: show the full name on screens wide enough to fit it
+              (≥475px — most modern phones in portrait), and fall back to the
+              first name only on narrow devices where the right-side
+              controls (theme toggle, menu) leave little room. The full name
+              has the same visual treatment as the original hardcoded layout
+              (highlighted first word + muted tail). */}
+          <span className="hidden xs:inline">
             <span className="text-foreground">{firstName}</span>
             {tail && (
               <span className="ml-1.5 text-muted-foreground">{tail}</span>
             )}
           </span>
-          <span className="sm:hidden">
+          <span className="xs:hidden">
             <span className="text-accent">{"//"}</span> {(firstName ?? "kamal").toLowerCase()}
           </span>
         </Link>
