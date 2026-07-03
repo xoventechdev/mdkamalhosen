@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus, Pencil } from "lucide-react";
+import { Types } from "mongoose";
 import {
   connect,
   BlogPostModel,
@@ -58,9 +59,23 @@ export default async function AdminBlogPage() {
     publishedAt?: Date | null;
     tagIds: string[]; // toClient stringifies ObjectId -> string
   }>;
+  // Collect every tag id referenced by any post, then convert to real
+  // ObjectId instances for the `$in` query. Doing it explicitly avoids
+  // Mongoose's implicit string→ObjectId cast, which can throw on
+  // malformed ids (e.g. an empty string or a non-hex value left over
+  // from a bad write). Bad ids are filtered out so they don't break
+  // the whole table render.
   const allTagIds = Array.from(
     new Set(posts.flatMap((p) => p.tagIds ?? [])),
-  );
+  )
+    .map((id) => {
+      try {
+        return new Types.ObjectId(id);
+      } catch {
+        return null;
+      }
+    })
+    .filter((id): id is Types.ObjectId => id !== null);
   const tagDocs = allTagIds.length
     ? await BlogTagModel.find({ _id: { $in: allTagIds } }).lean()
     : [];
