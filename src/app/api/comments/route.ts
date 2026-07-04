@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { Types } from "mongoose";
 import { connect, BlogPostModel, CommentModel } from "@/lib/db";
 import { currentAdmin } from "@/lib/auth";
@@ -159,6 +160,21 @@ export async function POST(request: NextRequest) {
       { ok: false, error: (e as Error).message || "Could not save comment." },
       { status: 500 },
     );
+  }
+
+  // Bust the cached comment list + the specific post page so the new
+  // comment (or its pending state, surfaced in the admin inbox) shows
+  // up on the very next render. Without this, the unstable_cache
+  // window in `getApprovedComments` would keep the visitor list stale
+  // for up to 60 s after an admin posts or approves inline.
+  try {
+    revalidateTag("comments");
+    revalidateTag("blog");
+    const slug = post.slug;
+    if (slug) revalidatePath(`/blog/${slug}`);
+  } catch {
+    // best-effort: the comment is already persisted, so a revalidation
+    // failure should not surface as a 500 to the submitter.
   }
 
   return NextResponse.json({

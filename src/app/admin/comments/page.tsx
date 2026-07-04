@@ -6,19 +6,21 @@ export const dynamic = "force-dynamic";
 export default async function AdminCommentsPage({
   searchParams,
 }: {
-  searchParams: { status?: string; post?: string };
+  searchParams: Promise<{ status?: string; post?: string }>;
 }) {
   await connect();
 
+  const params = await searchParams;
+
   const filter: Record<string, unknown> = {};
-  if (["pending", "approved", "spam", "rejected"].includes(searchParams.status ?? "")) {
-    filter.status = searchParams.status;
+  if (["pending", "approved", "spam", "rejected"].includes(params.status ?? "")) {
+    filter.status = params.status;
   }
-  if (searchParams.post && /^[A-Za-z0-9_-]+$/.test(searchParams.post)) {
+  if (params.post && /^[A-Za-z0-9_-]+$/.test(params.post)) {
     // Coerce to ObjectId for the find filter; do this in a tiny try
     // block so a malformed filter param cannot crash the page.
     try {
-      filter.postId = searchParams.post;
+      filter.postId = params.post;
     } catch {
       /* ignore malformed id */
     }
@@ -62,8 +64,8 @@ export default async function AdminCommentsPage({
       <CommentsInbox
         items={items}
         posts={postOptions}
-        currentStatus={searchParams.status ?? "all"}
-        currentPost={searchParams.post ?? "all"}
+        currentStatus={params.status ?? "all"}
+        currentPost={params.post ?? "all"}
       />
     </div>
   );

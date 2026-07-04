@@ -221,7 +221,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               )}
 
               <CommentsSection
-                postId={String(post._id)}
+                postId={post.id}
                 commentsEnabled={post.commentsEnabled !== false}
               />
             </article>
