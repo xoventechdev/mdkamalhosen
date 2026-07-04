@@ -59,7 +59,13 @@ async function seedProfile() {
         ],
         availability: "open",
         avatarUrl: "/avatars/placeholder.svg",
-        cvPdfUrl: "/cv/kamal-hosen-cv.pdf",
+        // Leave `cvPdfUrl` empty so the public CV page hides the
+        // download button until the admin uploads a PDF via
+        // /admin/profile (image-uploader → "cvs" bucket → paste the
+        // returned blob URL into the form). Seeded with the legacy
+        // local path here would 404 because /public/cv/ is not part
+        // of the repo.
+        cvPdfUrl: "",
         // Marketing
         highlights: [
           { text: "5+ years international", jobSeekingOnly: false },

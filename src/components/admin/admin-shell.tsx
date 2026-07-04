@@ -35,6 +35,7 @@ const nav = [
   { href: "/admin/projects", label: "Projects", iconName: "FolderGit2" },
   { href: "/admin/skills", label: "Skills", iconName: "Wrench" },
   { href: "/admin/blog", label: "Blog", iconName: "FileText" },
+  { href: "/admin/comments", label: "Comments", iconName: "MessageSquare" },
   { href: "/admin/messages", label: "Messages", iconName: "Mail" },
   { href: "/admin/settings", label: "Settings", iconName: "Settings" },
 ];
@@ -48,7 +49,13 @@ const PUBLIC_PATHS = new Set<string>([
   "/admin/reset-password",
 ]);
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export function AdminShell({
+  children,
+  pendingComments = 0,
+}: {
+  children: React.ReactNode;
+  pendingComments?: number;
+}) {
   const pathname = usePathname();
   const isPublic = PUBLIC_PATHS.has(pathname);
 
@@ -80,6 +87,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               label={item.label}
               iconName={item.iconName}
               exact={item.exact}
+              badge={
+                item.href === "/admin/comments" && pendingComments > 0
+                  ? pendingComments
+                  : undefined
+              }
             />
           ))}
         </nav>

@@ -14,7 +14,11 @@
       "Bash(find /h/Personal/Job/Me/mdkamalhosen/src/app/api -name *.ts -type f)",
       "Bash(ls src/app/\\\\\\(site\\\\\\)/)",
       "Bash(find src/app -name \"page.tsx\" -path \"*/\\(site\\)/*\")",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(ls -la /h/Personal/Job/Me/mdkamalhosen/src/app/'\\(site\\)')",
+      "Bash(ls -la /h/Personal/Job/Me/mdkamalhosen/src/app/'\\(site\\)'/blog)",
+      "Bash(ls -la /h/Personal/Job/Me/mdkamalhosen/src/app/'\\(site\\)'/blog/'[slug]')",
+      "Bash(ls -la /h/Personal/Job/Me/mdkamalhosen/src/app/'\\(site\\)'/blog/tag)"
     ]
   }
 }

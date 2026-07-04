@@ -87,6 +87,14 @@ type Profile = {
   location?: string | null;
   linkedinUrl?: string | null;
   summary?: string | null;
+  /**
+   * Path or full URL to the downloadable CV PDF. Stored on the
+   * singleton profile via the admin profile form, so the file can
+   * live in /public or in Vercel Blob without code changes. When
+   * unset, the download button is hidden so visitors don't get a
+   * 404.
+   */
+  cvPdfUrl?: string | null;
 };
 
 function dateRange(start: Date | string, end: Date | string | null | undefined): string {
@@ -165,13 +173,19 @@ export default async function CvPage() {
                   </a>
                 )}
               </div>
-              <a
-                href="/cv/kamal-hosen-cv.pdf"
-                download
-                className="group inline-flex h-10 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground transition-all hover:shadow-glow print:hidden"
-              >
-                <Download className="h-4 w-4" aria-hidden="true" /> Download PDF
-              </a>
+              {profile?.cvPdfUrl ? (
+                // `download` only triggers when the URL is same-origin
+                // (or when Content-Disposition is set); for cross-origin
+                // CV hosts the browser falls back to opening in a new
+                // tab, which is still a usable experience.
+                <a
+                  href={profile.cvPdfUrl}
+                  download
+                  className="group inline-flex h-10 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground transition-all hover:shadow-glow print:hidden"
+                >
+                  <Download className="h-4 w-4" aria-hidden="true" /> Download PDF
+                </a>
+              ) : null}
             </div>
           </ScrollReveal>
 

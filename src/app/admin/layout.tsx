@@ -1,4 +1,5 @@
 import { AdminShell } from "@/components/admin/admin-shell";
+import { getPendingCommentCount } from "@/server/queries";
 
 // Auth is enforced by middleware (see src/middleware.ts) which:
 //   • Has access to the request pathname
@@ -14,10 +15,23 @@ import { AdminShell } from "@/components/admin/admin-shell";
 // On every other /admin/* path the full sidebar with all admin sections
 // is shown.
 
-export default function AdminLayout({
+// Force-dynamic so the pending-comments badge stays fresh after an
+// admin approves a comment in another tab.
+export const dynamic = "force-dynamic";
+
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <AdminShell>{children}</AdminShell>;
+  // The count is best-effort; if the DB is unavailable (cold start,
+  // maintenance) the shell still renders without a badge rather than
+  // crashing the entire admin tree.
+  let pendingComments = 0;
+  try {
+    pendingComments = await getPendingCommentCount();
+  } catch {
+    pendingComments = 0;
+  }
+  return <AdminShell pendingComments={pendingComments}>{children}</AdminShell>;
 }

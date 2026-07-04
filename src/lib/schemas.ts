@@ -285,6 +285,53 @@ export const messageUpdateSchema = z.object({
 export type MessageUpdateInput = z.input<typeof messageUpdateSchema>;
 
 // ---------------------------------------------------------------------------
+// Comments (public submit + admin moderation)
+// ---------------------------------------------------------------------------
+
+/**
+ * Public submission schema. Honeypot field `_hp` must remain empty —
+ * real users do not see the input but bots fill every visible field.
+ *
+ * `postId` is required, not optional — the public POST handler reads
+ * the active post from this single token. `parentId` enables one-level
+ * threading (a top-level comment id only; replies cannot themselves be
+ * replied to).
+ */
+export const commentCreateSchema = z.object({
+  postId: objectIdLike,
+  parentId: objectIdLike.optional().nullable(),
+  authorName: trimmedString(80),
+  authorEmail: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Please enter a valid email.")
+    .max(254),
+  body: trimmedString(2000),
+  // Honeypot — kept as an optional string and validated empty.
+  _hp: z.string().max(0).optional().default(""),
+});
+export type CommentCreateInput = z.input<typeof commentCreateSchema>;
+
+/** Admin reply to an approved top-level comment. Skips moderation. */
+export const commentReplySchema = z.object({
+  parentId: objectIdLike,
+  body: trimmedString(2000),
+});
+export type CommentReplyInput = z.input<typeof commentReplySchema>;
+
+/** Wrap a single id into the standard `{ id }` envelope used by actions. */
+export const commentIdSchema = z.object({ id: objectIdLike });
+export type CommentIdInput = z.input<typeof commentIdSchema>;
+
+/** Per-post comments-enabled toggle. */
+export const setPostCommentsEnabledSchema = z.object({
+  postId: objectIdLike,
+  enabled: z.boolean(),
+});
+export type SetPostCommentsEnabledInput = z.input<typeof setPostCommentsEnabledSchema>;
+
+// ---------------------------------------------------------------------------
 // Reorder
 // ---------------------------------------------------------------------------
 export const reorderEntity = z.enum([

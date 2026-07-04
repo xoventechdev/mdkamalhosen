@@ -6,6 +6,7 @@ import { ReadingProgress } from "@/components/reading-progress";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { Badge } from "@/components/badge";
 import { JsonLd } from "@/components/json-ld";
+import { CommentsSection } from "@/components/comments/comments-section";
 import { getPostBySlug, getPublishedPosts } from "@/server/queries";
 import { renderMarkdown, extractToc } from "@/lib/markdown";
 import { formatDate, absoluteUrl } from "@/lib/utils";
@@ -218,6 +219,11 @@ export default async function BlogPostPage({ params }: PageProps) {
                   )}
                 </div>
               )}
+
+              <CommentsSection
+                postId={String(post._id)}
+                commentsEnabled={post.commentsEnabled !== false}
+              />
             </article>
 
             {/* Sticky TOC */}

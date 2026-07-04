@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import type { Types } from "mongoose";
+import { Types } from "mongoose";
 import {
   connect,
   toClient,
@@ -13,6 +13,7 @@ import {
   ProjectModel,
   BlogPostModel,
   BlogTagModel,
+  CommentModel,
 } from "@/lib/db";
 
 // ---------------------------------------------------------------------------
@@ -69,6 +70,7 @@ type PostWithTags = {
   metaDescription?: string | null;
   tagIds: Types.ObjectId[];
   tags: ClientTag[];
+  commentsEnabled: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -314,3 +316,92 @@ export const getAllTags = unstable_cache(
   ["tags"],
   { tags: ["blog"], revalidate: 60 },
 );
+
+// ---------------------------------------------------------------------------
+// Comments
+// ---------------------------------------------------------------------------
+
+/**
+ * Client-safe tree of approved comments for a single post. Top-level
+ * comments carry their replies in a flat `replies` array (one level only,
+ * enforced by the model + the public POST route). The public read layer
+ * strips `authorEmail` — admins see that only in the inbox.
+ */
+export interface PublicCommentNode {
+  id: string;
+  postId: string;
+  parentId: string | null;
+  authorName: string;
+  body: string;
+  isAdmin: boolean;
+  createdAt: string;
+  replies: PublicCommentNode[];
+}
+
+export async function getApprovedComments(postId: string): Promise<PublicCommentNode[]> {
+  return timed("getApprovedComments", async () => {
+    const cache = unstable_cache(
+      async () => {
+        await connect();
+        if (!Types.ObjectId.isValid(postId)) return [] as PublicCommentNode[];
+        const rows = await CommentModel.find({
+          postId: new Types.ObjectId(postId),
+          status: "approved",
+        })
+          .select("postId parentId authorName body isAdmin createdAt")
+          .sort({ createdAt: 1 })
+          .lean();
+
+        const byParent = new Map<string, PublicCommentNode[]>();
+        const roots: PublicCommentNode[] = [];
+        for (const r of rows) {
+          const node: PublicCommentNode = {
+            id: String(r._id),
+            postId: String(r.postId),
+            parentId: r.parentId ? String(r.parentId) : null,
+            authorName: r.authorName,
+            body: r.body,
+            isAdmin: !!r.isAdmin,
+            createdAt: (r.createdAt ?? new Date(0)).toISOString(),
+            replies: [],
+          };
+          if (node.parentId) {
+            const list = byParent.get(node.parentId) ?? [];
+            list.push(node);
+            byParent.set(node.parentId, list);
+          } else {
+            roots.push(node);
+          }
+        }
+        for (const node of roots) {
+          node.replies = (byParent.get(node.id) ?? []).sort((a, b) =>
+            a.createdAt.localeCompare(b.createdAt),
+          );
+        }
+        return roots;
+      },
+      ["comments:approved-by-post", postId],
+      { tags: ["comments", "blog"], revalidate: 60 },
+    );
+    return cache();
+  });
+}
+
+/**
+ * Pending count surfaced as a sidebar badge in the admin shell. Kept on
+ * its own short revalidate window so the badge refreshes quickly after
+ * approvals without invalidating the heavier per-post trees.
+ */
+export async function getPendingCommentCount(): Promise<number> {
+  return timed("getPendingCommentCount", async () => {
+    const cache = unstable_cache(
+      async () => {
+        await connect();
+        return CommentModel.countDocuments({ status: "pending" });
+      },
+      ["comments:pending-count"],
+      { tags: ["comments"], revalidate: 30 },
+    );
+    return cache();
+  });
+}

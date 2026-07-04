@@ -15,6 +15,7 @@ import {
   BlogPostModel,
   BlogTagModel,
   MessageModel,
+  CommentModel,
   ActivityLogModel,
 } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
@@ -29,11 +30,15 @@ import {
   blogPostSchema,
   blogTagSchema,
   messageUpdateSchema,
+  commentReplySchema,
+  commentIdSchema,
+  setPostCommentsEnabledSchema,
   reorderSchema,
   type ActionResult,
   type ReorderEntity,
 } from "@/lib/schemas";
 import { slugify, readingMinutes } from "@/lib/utils";
+import { sendEmail } from "@/lib/mail";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -54,7 +59,8 @@ type EntityName =
   | "project"
   | "blogPost"
   | "blogTag"
-  | "message";
+  | "message"
+  | "comment";
 
 function entityTag(name: EntityName): string {
   // Match the tags used by src/server/queries.ts for the public site.
@@ -69,6 +75,7 @@ function entityTag(name: EntityName): string {
     blogPost: "blog",
     blogTag: "blog",
     message: "blog", // messages share the revalidation flow (no public tag)
+    comment: "comments",
   };
   return map[name];
 }
@@ -85,6 +92,7 @@ function entityPath(name: EntityName): string[] {
     blogPost: ["/", "/blog", "/sitemap.xml"],
     blogTag: ["/blog"],
     message: [],
+    comment: ["/blog", "/sitemap.xml"],
   };
   return map[name];
 }
@@ -1197,6 +1205,245 @@ export async function testAiSettings(): Promise<ActionResult> {
     if (e && typeof e === "object" && "name" in e && (e as { name: string }).name === "AiError") {
       return { ok: false, error: (e as Error).message };
     }
+    return fail(e);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Comments
+// ---------------------------------------------------------------------------
+
+/**
+ * Helpers for any action that mutates a comment: bust the global
+ * `comments` cache AND the specific post page so the public tree
+ * refreshes on the very next render (no 60-second staleness).
+ */
+async function revalidateCommentTargets(postId: Types.ObjectId) {
+  revalidateEntity("comment");
+  try {
+    const post = await BlogPostModel.findById(postId).select("slug").lean();
+    if (post?.slug) revalidatePath(`/blog/${post.slug}`);
+  } catch {
+    // best-effort: the entity-level revalidation already covers
+    // the bulk of the public cache.
+  }
+}
+
+export async function approveComment(raw: unknown): Promise<ActionResult<{ id: string }>> {
+  let email: string;
+  try {
+    ({ email } = await requireAdmin());
+  } catch (e) {
+    return fail(e);
+  }
+  const parsed = commentIdSchema.safeParse(raw);
+  if (!parsed.success) return fail(parsed.error);
+  try {
+    await connect();
+    const c = await CommentModel.findByIdAndUpdate(
+      parsed.data.id,
+      { $set: { status: "approved" } },
+      { new: true },
+    )
+      .select("postId")
+      .lean();
+    if (!c) return { ok: false, error: "Comment not found." };
+    await revalidateCommentTargets(c.postId);
+    await logActivity(email, "updated", "comment", String(c._id), { status: "approved" });
+    return ok({ id: String(c._id) }, String(c._id));
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function rejectComment(raw: unknown): Promise<ActionResult<{ id: string }>> {
+  let email: string;
+  try {
+    ({ email } = await requireAdmin());
+  } catch (e) {
+    return fail(e);
+  }
+  const parsed = commentIdSchema.safeParse(raw);
+  if (!parsed.success) return fail(parsed.error);
+  try {
+    await connect();
+    const c = await CommentModel.findByIdAndUpdate(
+      parsed.data.id,
+      { $set: { status: "rejected" } },
+      { new: true },
+    )
+      .select("postId")
+      .lean();
+    if (!c) return { ok: false, error: "Comment not found." };
+    await revalidateCommentTargets(c.postId);
+    await logActivity(email, "updated", "comment", String(c._id), { status: "rejected" });
+    return ok({ id: String(c._id) }, String(c._id));
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+export async function markCommentSpam(raw: unknown): Promise<ActionResult<{ id: string }>> {
+  let email: string;
+  try {
+    ({ email } = await requireAdmin());
+  } catch (e) {
+    return fail(e);
+  }
+  const parsed = commentIdSchema.safeParse(raw);
+  if (!parsed.success) return fail(parsed.error);
+  try {
+    await connect();
+    const c = await CommentModel.findByIdAndUpdate(
+      parsed.data.id,
+      { $set: { status: "spam" } },
+      { new: true },
+    )
+      .select("postId")
+      .lean();
+    if (!c) return { ok: false, error: "Comment not found." };
+    await revalidateCommentTargets(c.postId);
+    await logActivity(email, "updated", "comment", String(c._id), { status: "spam" });
+    return ok({ id: String(c._id) }, String(c._id));
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+/**
+ * Hard-delete. Top-level comments cascade-delete their replies; replies
+ * themselves are leaf nodes so a single delete is enough.
+ */
+export async function deleteComment(raw: unknown): Promise<ActionResult<{ id: string }>> {
+  let email: string;
+  try {
+    ({ email } = await requireAdmin());
+  } catch (e) {
+    return fail(e);
+  }
+  const parsed = commentIdSchema.safeParse(raw);
+  if (!parsed.success) return fail(parsed.error);
+  try {
+    await connect();
+    const c = await CommentModel.findById(parsed.data.id)
+      .select("_id postId parentId")
+      .lean();
+    if (!c) return { ok: false, error: "Comment not found." };
+
+    if (!c.parentId) {
+      await CommentModel.deleteMany({ parentId: c._id });
+    }
+    await CommentModel.deleteOne({ _id: c._id });
+
+    await revalidateCommentTargets(c.postId);
+    await logActivity(email, "deleted", "comment", String(c._id));
+    return ok({ id: String(c._id) }, String(c._id));
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+/**
+ * Admin reply. Auto-approved. Best-effort email notification to the
+ * parent's author email (failures are swallowed so the action never
+ * blocks on SMTP).
+ */
+export async function replyToComment(raw: unknown): Promise<ActionResult<{ id: string }>> {
+  let admin;
+  try {
+    admin = await requireAdmin();
+  } catch (e) {
+    return fail(e);
+  }
+  const parsed = commentReplySchema.safeParse(raw);
+  if (!parsed.success) return fail(parsed.error);
+  try {
+    await connect();
+    const parent = await CommentModel.findById(parsed.data.parentId)
+      .select("_id parentId postId authorEmail authorName status")
+      .lean();
+    if (!parent) return { ok: false, error: "Parent comment not found." };
+    if (parent.parentId) return { ok: false, error: "Cannot reply to a reply." };
+    if (parent.status !== "approved") {
+      return { ok: false, error: "Parent comment is not approved yet." };
+    }
+
+    const displayName = admin.email.split("@")[0] || "Admin";
+    const created = await CommentModel.create({
+      postId: parent.postId,
+      parentId: parent._id,
+      authorName: displayName,
+      authorEmail: admin.email,
+      body: parsed.data.body,
+      status: "approved",
+      isAdmin: true,
+      authorUserId: new Types.ObjectId(admin.userId),
+    });
+
+    await revalidateCommentTargets(parent.postId);
+
+    // Best-effort: notify the original commenter that the site owner has
+    // replied. Failures must never block the action result.
+    try {
+      const post = await BlogPostModel.findById(parent.postId)
+        .select("slug title")
+        .lean();
+      if (post?.slug && parent.authorEmail) {
+        const base = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+        const url = `${base}/blog/${post.slug}#comment-${parent._id}`;
+        const safeBody = parsed.data.body.replace(/[&<>]/g, (c) =>
+          c === "&" ? "&amp;" : c === "<" ? "&lt;" : "&gt;",
+        );
+        const html = `<p>Hi ${parent.authorName},</p><p>${displayName} replied to your comment:</p><blockquote>${safeBody}</blockquote><p><a href="${url}">View the discussion</a></p>`;
+        await sendEmail({
+          to: parent.authorEmail,
+          subject: `New reply to your comment on "${post.title}"`,
+          text: `Hi ${parent.authorName},\n\n${displayName} replied:\n\n${parsed.data.body}\n\nView: ${url}`,
+          html,
+        });
+      }
+    } catch {
+      /* never block on mail failure */
+    }
+
+    await logActivity(admin.email, "created", "comment", String(created._id), { reply: true });
+    return ok({ id: String(created._id) }, String(created._id));
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+/**
+ * Per-post comments toggle. Busts both the blog and comments caches
+ * because the section header and the form visibility both depend on it.
+ */
+export async function setPostCommentsEnabled(raw: unknown): Promise<ActionResult<{ postId: string; enabled: boolean }>> {
+  let email: string;
+  try {
+    ({ email } = await requireAdmin());
+  } catch (e) {
+    return fail(e);
+  }
+  const parsed = setPostCommentsEnabledSchema.safeParse(raw);
+  if (!parsed.success) return fail(parsed.error);
+  try {
+    await connect();
+    const updated = await BlogPostModel.findByIdAndUpdate(
+      parsed.data.postId,
+      { $set: { commentsEnabled: parsed.data.enabled } },
+      { new: true },
+    )
+      .select("slug")
+      .lean();
+    if (!updated) return { ok: false, error: "Post not found." };
+    revalidateEntity("blogPost");
+    revalidateEntity("comment");
+    if (updated.slug) revalidatePath(`/blog/${updated.slug}`);
+    await logActivity(email, "updated", "blogPost", String(updated._id), {
+      commentsEnabled: parsed.data.enabled,
+    });
+    return ok({ postId: String(updated._id), enabled: parsed.data.enabled }, String(updated._id));
+  } catch (e) {
     return fail(e);
   }
 }

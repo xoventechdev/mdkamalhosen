@@ -12,9 +12,11 @@ import {
   Award,
   Wrench,
   User,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
@@ -26,6 +28,7 @@ const ICONS: Record<string, LucideIcon> = {
   Award,
   Wrench,
   User,
+  MessageSquare,
 };
 
 export interface NavLinkProps {
@@ -33,9 +36,11 @@ export interface NavLinkProps {
   label: string;
   iconName: string;
   exact?: boolean;
+  /** Optional count to surface as an inline badge — used for pending comments. */
+  badge?: number;
 }
 
-export function NavLink({ href, label, iconName, exact }: NavLinkProps) {
+export function NavLink({ href, label, iconName, exact, badge }: NavLinkProps) {
   const pathname = usePathname();
   const isActive = exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
   const Icon = ICONS[iconName] ?? User;
@@ -50,7 +55,12 @@ export function NavLink({ href, label, iconName, exact }: NavLinkProps) {
       )}
     >
       <Icon className="h-4 w-4" />
-      {label}
+      <span className="flex-1 truncate">{label}</span>
+      {typeof badge === "number" && badge > 0 && (
+        <Badge variant="accent" className="ml-auto h-5 px-1.5 text-[10px]">
+          {badge > 99 ? "99+" : badge}
+        </Badge>
+      )}
     </Link>
   );
 }

@@ -19,6 +19,12 @@ export interface BlogPostDoc {
    * `BlogTagModel.find({ _id: { $in: tagIds } })`.
    */
   tagIds: Types.ObjectId[];
+  /**
+   * Per-post toggle for the public comments section. Defaults to true
+   * so existing posts opt-in. Admins can flip this from the blog
+   * editor or via the `setPostCommentsEnabled` server action.
+   */
+  commentsEnabled: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -35,6 +41,7 @@ const BlogPostSchema = new Schema<BlogPostDoc>(
     readingMinutes: { type: Number, default: 1 },
     metaDescription: String,
     tagIds: { type: [Types.ObjectId], default: [] },
+    commentsEnabled: { type: Boolean, default: true },
   },
   { timestamps: true, versionKey: false, collection: "blog_posts" },
 );
