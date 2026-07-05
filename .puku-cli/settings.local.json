@@ -23,7 +23,11 @@
       "Bash(npm install:*)",
       "Bash(echo \"EXIT=$?\")",
       "Read(//tmp/**)",
-      "Bash(echo EXIT=$?)"
+      "Bash(echo EXIT=$?)",
+      "Bash(grep -l \"Types\" src/lib/db/*.ts)",
+      "Bash(npx tsx:*)",
+      "Bash(echo TSC=$?)",
+      "Bash(echo LINT=$?)"
     ]
   }
 }
