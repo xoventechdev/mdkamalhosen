@@ -1,15 +1,17 @@
 import type { AiProviderId } from "@/lib/schemas";
 
 /**
- * Server-only client for the four supported AI providers.
+ * Server-only client for the supported AI providers.
  *
- * Why one function with a switch instead of four classes:
+ * Why one function with a switch instead of N classes:
  *   - The public surface is intentionally tiny: `callChat()` returns
  *     `{ text, usage }` or throws `AiError`. We don't model streaming,
  *     tools, or multi-turn. The blog editor only needs single-shot
  *     completions that come back as structured JSON.
- *   - Each provider branch is ~15 lines. Keeping them in one file makes
+ *   - Each provider branch is short. Keeping them in one file makes
  *     it easy to keep headers, timeouts, and error normalisation aligned.
+ *     Providers with the OpenAI-compatible chat shape share a single
+ *     `openAiCompatible` factory rather than copy-pasted branches.
  *
  * Safety properties:
  *   - 30s hard timeout via `AbortController`. Anything slower is treated
@@ -51,67 +53,132 @@ const TIMEOUT_MS = 30_000;
 interface ProviderEndpoints {
   url: string;
   headers: (apiKey: string) => Record<string, string>;
-  /** Build the request body and parse the response text. */
+  /** Build the request body. */
   buildBody: (model: string, messages: ChatMessage[]) => unknown;
+  /** Parse the response body into `{ text, usage }`. */
   extract: (json: unknown) => ChatResult;
 }
 
-const ENDPOINTS: Record<AiProviderId, ProviderEndpoints> = {
-  openai: {
-    url: "https://api.openai.com/v1/chat/completions",
+/**
+ * Build a provider endpoint that speaks OpenAI's chat-completions
+ * schema. Used by openai/openrouter/deepseek/poolside/minimax —
+ * they all accept the same request shape and return the same
+ * response shape.
+ *
+ * Differences between them live entirely in (a) base URL,
+ * (b) optional headers (only OpenRouter requires `HTTP-Referer`),
+ * and (c) `providerId` so the error message names the failing
+ * provider instead of hardcoding "openai".
+ */
+function openAiCompatible(
+  url: string,
+  providerId: AiProviderId,
+  extraHeaders: (apiKey: string) => Record<string, string> = () => ({}),
+  extraBody: (model: string, body: Record<string, unknown>) => Record<string, unknown> = (_, body) => body,
+): ProviderEndpoints {
+  return {
+    url,
     headers: (apiKey) => ({
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
+      ...extraHeaders(apiKey),
     }),
-    buildBody: (model, messages) => ({
-      model,
-      messages,
-      temperature: 0.2,
-    }),
+    buildBody: (model, messages) =>
+      extraBody(model, {
+        model,
+        messages,
+        temperature: 0.2,
+      }),
     extract: (json) => {
       const j = json as {
         choices?: Array<{ message?: { content?: string } }>;
         usage?: { prompt_tokens?: number; completion_tokens?: number };
       };
       const text = j.choices?.[0]?.message?.content;
-      if (!text) throw new AiError("OpenAI returned no message.", "openai");
+      if (!text) {
+        throw new AiError(
+          `${PROVIDER_LABEL[providerId]} returned no message.`,
+          providerId,
+        );
+      }
       const usage =
         j.usage?.prompt_tokens != null && j.usage?.completion_tokens != null
           ? { in: j.usage.prompt_tokens, out: j.usage.completion_tokens }
           : undefined;
       return { text, usage };
     },
-  },
+  };
+}
 
-  // OpenRouter is OpenAI-compatible; we reuse the same shape.
-  openrouter: {
-    url: "https://openrouter.ai/api/v1/chat/completions",
-    headers: (apiKey) => ({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+/**
+ * Human-readable provider names. Kept here (next to the client) so
+ * error messages don't depend on a UI-side label map; the Settings
+ * page maintains its own copy for the dropdown.
+ */
+const PROVIDER_LABEL: Record<AiProviderId, string> = {
+  openai: "OpenAI",
+  anthropic: "Anthropic",
+  google: "Google Gemini",
+  openrouter: "OpenRouter",
+  poolside: "Poolside",
+  minimax: "MiniMax",
+  deepseek: "DeepSeek",
+};
+
+/**
+ * MiniMax's hosted chat-completion endpoint accepts the same
+ * request shape as OpenAI but returns content under
+ * `choices[].message.content` and reports usage under
+ * `usage.{prompt_tokens, completion_tokens}` — exactly the same
+ * structure as OpenAI. Treat it as OpenAI-compatible for parsing.
+ */
+const ENDPOINTS: Record<AiProviderId, ProviderEndpoints> = {
+  // Provider labels are surfaced in the Settings UI — see
+  // `PROVIDER_LABEL` in components/admin/settings-client.tsx.
+  openai: openAiCompatible(
+    "https://api.openai.com/v1/chat/completions",
+    "openai",
+  ),
+
+  openrouter: openAiCompatible(
+    "https://openrouter.ai/api/v1/chat/completions",
+    "openrouter",
+    () => ({
       "HTTP-Referer":
         process.env.NEXT_PUBLIC_SITE_URL ?? "https://localhost:3000",
       "X-Title": "Md Kamal Hosen — Blog Editor",
     }),
-    buildBody: (model, messages) => ({
-      model,
-      messages,
-      temperature: 0.2,
-    }),
-    extract: (json) => {
-      const j = json as {
-        choices?: Array<{ message?: { content?: string } }>;
-        usage?: { prompt_tokens?: number; completion_tokens?: number };
-      };
-      const text = j.choices?.[0]?.message?.content;
-      if (!text) throw new AiError("OpenRouter returned no message.", "openrouter");
-      const usage =
-        j.usage?.prompt_tokens != null && j.usage?.completion_tokens != null
-          ? { in: j.usage.prompt_tokens, out: j.usage.completion_tokens }
-          : undefined;
-      return { text, usage };
-    },
-  },
+  ),
+
+  /**
+   * Poolside exposes an OpenAI-compatible chat-completions endpoint.
+   * Model ids are typically `poolside-default` etc.; admins configure
+   * the model in Settings.
+   */
+  poolside: openAiCompatible(
+    "https://api.poolside.ai/v1/chat/completions",
+    "poolside",
+  ),
+
+  /**
+   * DeepSeek's public API is OpenAI-compatible. The two named models
+   * (`deepseek-chat` = V3, `deepseek-reasoner` = R1) are listed as
+   * curated defaults in `AI_DEFAULT_MODELS` in lib/schemas.ts.
+   */
+  deepseek: openAiCompatible(
+    "https://api.deepseek.com/v1/chat/completions",
+    "deepseek",
+  ),
+
+  /**
+   * MiniMax's `chatcompletion_v2` endpoint is OpenAI-compatible
+   * in shape; we mirror that. Default model `MiniMax-Text-01` is set
+   * in `AI_DEFAULT_MODELS`.
+   */
+  minimax: openAiCompatible(
+    "https://api.minimaxi.chat/v1/text/chatcompletion_v2",
+    "minimax",
+  ),
 
   anthropic: {
     url: "https://api.anthropic.com/v1/messages",

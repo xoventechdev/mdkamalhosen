@@ -363,7 +363,15 @@ export type ActionResult<T = void> =
 // AI settings (admin → blog editor review + title/excerpt/SEO suggestions)
 // ---------------------------------------------------------------------------
 
-export const AI_PROVIDER_IDS = ["openai", "anthropic", "google", "openrouter"] as const;
+export const AI_PROVIDER_IDS = [
+  "openai",
+  "anthropic",
+  "google",
+  "openrouter",
+  "poolside",
+  "minimax",
+  "deepseek",
+] as const;
 export type AiProviderId = (typeof AI_PROVIDER_IDS)[number];
 
 /** Curated default model lists per provider. Admins can override. */
@@ -376,6 +384,15 @@ export const AI_DEFAULT_MODELS: Record<AiProviderId, readonly string[]> = {
     "anthropic/claude-3.5-sonnet",
     "google/gemini-flash-1.5",
   ],
+  // Poolside's catalog is curated by them; admins can paste any model
+  // id they have access to. We seed the default so the dropdown has
+  // something to show.
+  poolside: ["poolside-default"],
+  // MiniMax's flagship text model; older `abab6.5*` aliases still
+  // work but aren't surfaced in the dropdown by default.
+  minimax: ["MiniMax-Text-01"],
+  // DeepSeek's two named chat models: V3 (chat) and R1 (reasoner).
+  deepseek: ["deepseek-chat", "deepseek-reasoner"],
 };
 
 /**

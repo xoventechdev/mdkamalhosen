@@ -6,7 +6,8 @@ import { ScrollReveal } from "@/components/scroll-reveal";
 import { Badge } from "@/components/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getPublishedPosts } from "@/server/queries";
-import { formatDate, absoluteUrl } from "@/lib/utils";
+import { absoluteUrl } from "@/lib/utils";
+import { PostDates } from "@/components/post-dates";
 
 export const revalidate = 60;
 
@@ -43,6 +44,10 @@ async function loadPosts() {
       title: p.title,
       excerpt: p.excerpt,
       publishedAt: p.publishedAt,
+      // Pulled through unchanged so the <PostDates /> chip on each
+      // card can render "Updated …" when the post has been edited
+      // after it was first published.
+      updatedAt: p.updatedAt,
       readingMinutes: p.readingMinutes,
       tags: p.tags.map((t) => t.slug),
       coverUrl: p.coverUrl,
@@ -116,9 +121,11 @@ export default async function BlogPage() {
                             </Badge>
                           ))}
                           {p.publishedAt && (
-                            <span className="font-mono text-[11px] text-muted-foreground">
-                              {formatDate(p.publishedAt, { month: true, year: true })}
-                            </span>
+                            <PostDates
+                              publishedAt={p.publishedAt}
+                              updatedAt={p.updatedAt}
+                              className="text-[11px] text-muted-foreground"
+                            />
                           )}
                         </div>
                         <h2 className="mt-4 text-lg font-semibold tracking-tight group-hover:text-accent">

@@ -232,7 +232,16 @@ export async function getPublishedPosts(): Promise<PostWithTags[]> {
     const cache = unstable_cache(
       async () => {
         await connect();
-        const posts = await BlogPostModel.find({ status: "published" })
+        // Sort by publish time, NOT update time — `updatedAt`
+        // would otherwise float a recently-edited but older post
+        // to the top, confusing the timeline. The `{ $ne: null }`
+        // guard keeps ordering deterministic across Mongo versions
+        // (null sorts are an unstable edge case) and hides the rare
+        // row that's published without a timestamp.
+        const posts = await BlogPostModel.find({
+          status: "published",
+          publishedAt: { $ne: null },
+        })
           .sort({ publishedAt: -1 })
           .lean();
         const clientPosts = toClient(posts) as unknown as PostShape[];
@@ -250,7 +259,10 @@ export async function getLatestPosts(limit = 3): Promise<PostWithTags[]> {
     const cache = unstable_cache(
       async () => {
         await connect();
-        const posts = await BlogPostModel.find({ status: "published" })
+        const posts = await BlogPostModel.find({
+          status: "published",
+          publishedAt: { $ne: null },
+        })
           .sort({ publishedAt: -1 })
           .limit(limit)
           .lean();
@@ -293,6 +305,7 @@ export async function getPostsByTag(tagSlug: string): Promise<PostWithTags[]> {
         const posts = await BlogPostModel.find({
           status: "published",
           tagIds: tag._id,
+          publishedAt: { $ne: null },
         })
           .sort({ publishedAt: -1 })
           .lean();

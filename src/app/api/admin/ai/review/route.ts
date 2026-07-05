@@ -67,6 +67,19 @@ DO NOT:
 - Change the meaning of any sentence.
 - Rewrite prose for style. Re-format, then lightly edit. Stop.
 
+3. OUTPUT FORMAT:
+   - \`revisedBody\` MUST itself be well-formed Markdown: balanced code fences
+     (matching opening/closing \`\`\` counts), a single trailing newline,
+     consistent list markers, and no half-finished HTML or template strings
+     leaking from your reasoning.
+   - Do not include any preamble or commentary inside \`revisedBody\` — it is
+     the literal article body that will be saved to the database and
+     rendered on the public site. Outside of \`revisedBody\` you may only
+     emit the JSON object described below.
+   - Use Markdown features tastefully: code fences with language tags for
+     code, tables for tabular data, blockquotes for callouts, and inline
+     \`backticks\` for identifiers / file paths / short code references.
+
 If the article is already clean (both structurally and editorially), return a \`revisedBody\` identical to the original and an empty \`changes\` array.
 
 Return ONLY valid JSON in this exact shape (no commentary, no markdown fences):
@@ -172,6 +185,30 @@ const MODEL_PRICING: Record<
     outPer1M: 0.4,
     display: "gemini-2.0-flash",
   },
+  // DeepSeek — V3 (chat) is roughly $0.14/$0.28 per 1M, R1 (reasoner)
+  // is the same input but ~8× the output ($2.19/M). Cache hits drop
+  // input to ~$0.014/M but we don't model cache here.
+  "deepseek-chat": { inPer1M: 0.14, outPer1M: 0.28, display: "deepseek-chat" },
+  "deepseek-reasoner": {
+    inPer1M: 0.14,
+    outPer1M: 2.19,
+    display: "deepseek-reasoner",
+  },
+  // MiniMax Text-01 — published list pricing for the flagship text
+  // model. Older abab series isn't surfaced here.
+  "MiniMax-Text-01": {
+    inPer1M: 0.2,
+    outPer1M: 1.0,
+    display: "MiniMax-Text-01",
+  },
+  // Poolside — public pricing varies by tier; we seed the default
+  // with a mid-range estimate so the UI shows a non-zero cost line
+  // until we have a concrete number for the chosen model id.
+  "poolside-default": {
+    inPer1M: 0.5,
+    outPer1M: 1.5,
+    display: "poolside-default",
+  },
 };
 // OpenRouter models are priced by the provider; we don't maintain a
 // full catalog, so fall back to a middle-tier estimate and let the
@@ -182,17 +219,32 @@ const OPENROUTER_FALLBACK = {
   display: "openrouter",
 };
 
+/**
+ * Per-provider fallback estimate for unknown model ids. Used when an
+ * admin types a custom model we don't have pricing for — the goal is
+ * a non-zero "≈$0.04" hint, not ledger accuracy. The `display` field
+ * falls back to the actual model id so the user can see what they ran.
+ */
+const PROVIDER_FALLBACK: Record<AiProviderId, { inPer1M: number; outPer1M: number }> = {
+  openai: { inPer1M: 1.0, outPer1M: 3.0 },
+  anthropic: { inPer1M: 3.0, outPer1M: 15.0 },
+  google: { inPer1M: 0.5, outPer1M: 1.5 },
+  openrouter: { inPer1M: 1.0, outPer1M: 3.0 },
+  poolside: { inPer1M: 0.5, outPer1M: 1.5 },
+  minimax: { inPer1M: 0.2, outPer1M: 1.0 },
+  deepseek: { inPer1M: 0.14, outPer1M: 0.28 },
+};
+
 function priceFor(provider: AiProviderId, model: string) {
   if (provider === "openrouter") {
     return { ...OPENROUTER_FALLBACK, display: model };
   }
-  return (
-    MODEL_PRICING[model] ?? {
-      inPer1M: 1.0,
-      outPer1M: 3.0,
-      display: model,
-    }
-  );
+  // 1. Curated exact match.
+  const exact = MODEL_PRICING[model];
+  if (exact) return exact;
+  // 2. Per-provider fallback (model-specific display).
+  const fb = PROVIDER_FALLBACK[provider];
+  return { ...fb, display: model };
 }
 
 function costUsd(
@@ -235,9 +287,10 @@ function successEnvelope(
  * Body: { mode, bodyMd | summary, currentTitle?, currentExcerpt?, currentMeta? }
  *
  * Modes:
- *   review → returns a list of {original, replacement} suggestions
+ *   review → returns a revised body + change list
  *   titles → returns {title, excerpt}
  *   seo    → returns {metaDescription}
+ *   tags   → returns {suggestedTags}
  *
  * Auth: admin only (HMAC cookie + DB allow-list).
  * Rate limit: 10 requests/min per admin.

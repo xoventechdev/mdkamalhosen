@@ -9,8 +9,9 @@ import { JsonLd } from "@/components/json-ld";
 import { CommentsSection } from "@/components/comments/comments-section";
 import { getPostBySlug, getPublishedPosts } from "@/server/queries";
 import { renderMarkdown, extractToc } from "@/lib/markdown";
-import { formatDate, absoluteUrl } from "@/lib/utils";
+import { absoluteUrl } from "@/lib/utils";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
+import { PostDates } from "@/components/post-dates";
 
 export const revalidate = 60;
 
@@ -93,7 +94,12 @@ export default async function BlogPostPage({ params }: PageProps) {
           excerpt: post.excerpt,
           coverUrl: post.coverUrl,
           publishedAt: post.publishedAt,
-          updatedAt: post.publishedAt,
+          // Use the real `updatedAt` (Mongoose timestamp) for
+          // dateModified, not the publishedAt as the previous code did.
+          // `updatedAt` and `publishedAt` will be equal on a post
+          // that has never been edited; that matches Schema.org's
+          // definition of dateModified.
+          updatedAt: post.updatedAt ?? post.publishedAt,
           tags: post.tags.map((t) => t.slug),
           readingMinutes: post.readingMinutes,
           author: { name: "Md Kamal Hosen" },
@@ -143,7 +149,11 @@ export default async function BlogPostPage({ params }: PageProps) {
               {post.publishedAt && (
                 <span className="inline-flex items-center gap-1.5">
                   <Calendar className="h-4 w-4" aria-hidden="true" />
-                  {formatDate(post.publishedAt, { month: true, year: true })}
+                  <PostDates
+                    publishedAt={post.publishedAt}
+                    updatedAt={post.updatedAt}
+                    className="text-sm text-muted-foreground"
+                  />
                 </span>
               )}
               <span className="inline-flex items-center gap-1.5">

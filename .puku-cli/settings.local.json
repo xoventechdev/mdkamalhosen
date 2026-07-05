@@ -27,7 +27,10 @@
       "Bash(grep -l \"Types\" src/lib/db/*.ts)",
       "Bash(npx tsx:*)",
       "Bash(echo TSC=$?)",
-      "Bash(echo LINT=$?)"
+      "Bash(echo LINT=$?)",
+      "Bash(echo \"BUILD=$?\")",
+      "Bash(awk 'NR>=230 && NR<=265' src/server/queries.ts)",
+      "Bash(awk 'NR>=633 && NR<=645' \"src/app/page.tsx\")"
     ]
   }
 }

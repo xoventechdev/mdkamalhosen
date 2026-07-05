@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -48,8 +48,14 @@ async function newPost() {
 export default async function AdminBlogPage() {
   // Manual join: BlogPost embeds `tagIds` instead of an M2M relation.
   await connect();
+  // Sort by publish time, then by update time as a tiebreaker.
+  // Sorting by `updatedAt` alone would float any edited-but-older post
+  // to the top, confusing the admin who expects a chronological list.
+  // Drafts (no `publishedAt`) sink to the bottom, then fall back to
+  // `updatedAt` desc so a freshly-created draft still shows first
+  // among its peers.
   const postDocs = await BlogPostModel.find({})
-    .sort({ updatedAt: -1 })
+    .sort({ publishedAt: -1, updatedAt: -1 })
     .lean();
   const posts = toClient(postDocs) as unknown as Array<{
     id: string;
@@ -139,7 +145,7 @@ export default async function AdminBlogPage() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
-                  {row.publishedAt ? formatDate(row.publishedAt) : "—"}
+                  {row.publishedAt ? formatDateTime(row.publishedAt) : "—"}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button asChild size="sm" variant="secondary">

@@ -27,6 +27,7 @@ import {
   getSkillGroups,
 } from "@/server/queries";
 import { formatDate } from "@/lib/utils";
+import { PostDates } from "@/components/post-dates";
 import { SITE_DEFAULTS } from "@/lib/site-defaults";
 
 export const revalidate = 60;
@@ -635,7 +636,9 @@ async function LatestPostsSection() {
     slug: string;
     title: string;
     excerpt?: string | null;
+    coverUrl?: string | null;
     publishedAt?: Date | null;
+    updatedAt?: Date | null;
     readingMinutes: number;
     tags: Array<{ slug: string }>;
   }>;
@@ -668,14 +671,35 @@ async function LatestPostsSection() {
                 href={`/blog/${p.slug}`}
                 className="group flex h-full flex-col overflow-hidden rounded-2xl glass-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover"
               >
-                <div
-                  className="cover-gradient-blog aspect-[16/10]"
-                  aria-hidden="true"
-                />
+                <div className="relative aspect-[16/10] w-full overflow-hidden">
+                  {p.coverUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.coverUrl}
+                      alt={`${p.title} cover`}
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div
+                      className="cover-gradient-blog absolute inset-0"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <div
+                    className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/40 to-transparent"
+                    aria-hidden="true"
+                  />
+                </div>
                 <div className="flex flex-1 flex-col p-6">
                   <p className="font-mono text-xs text-muted-foreground">
-                    {formatDate(p.publishedAt, { month: true, year: true })}
-                    {" · "}
+                    {p.publishedAt && (
+                      <PostDates
+                        publishedAt={p.publishedAt}
+                        updatedAt={p.updatedAt}
+                        className="text-xs text-muted-foreground"
+                      />
+                    )}
+                    {p.publishedAt && <span className="mx-1.5 opacity-50" aria-hidden="true">·</span>}
                     {p.readingMinutes} min read
                   </p>
                   <h3 className="mt-3 text-base font-semibold tracking-tight group-hover:text-accent">

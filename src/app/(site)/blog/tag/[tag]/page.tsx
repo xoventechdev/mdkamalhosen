@@ -7,7 +7,8 @@ import { ScrollReveal } from "@/components/scroll-reveal";
 import { Badge } from "@/components/badge";
 import { JsonLd } from "@/components/json-ld";
 import { getPostsByTag, getAllTags } from "@/server/queries";
-import { formatDate, absoluteUrl } from "@/lib/utils";
+import { absoluteUrl } from "@/lib/utils";
+import { PostDates } from "@/components/post-dates";
 import { breadcrumbJsonLd, websiteJsonLd } from "@/lib/jsonld";
 
 export const revalidate = 60;
@@ -67,7 +68,9 @@ export default async function BlogTagPage({ params }: PageProps) {
     slug: string;
     title: string;
     excerpt?: string | null;
+    coverUrl?: string | null;
     publishedAt?: Date | null;
+    updatedAt?: Date | null;
     readingMinutes: number;
     tags: Array<{ id: string; slug: string; name: string }>;
   }>;
@@ -123,16 +126,36 @@ export default async function BlogTagPage({ params }: PageProps) {
                     href={`/blog/${p.slug}`}
                     className="group flex h-full flex-col overflow-hidden rounded-2xl glass-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-hover"
                   >
-                    <div className="cover-gradient-blog aspect-[16/9]" aria-hidden="true" />
+                    <div className="relative aspect-[16/9] w-full overflow-hidden">
+                      {p.coverUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.coverUrl}
+                          alt={`${p.title} cover`}
+                          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div
+                          className="cover-gradient-blog absolute inset-0"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <div
+                        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/40 to-transparent"
+                        aria-hidden="true"
+                      />
+                    </div>
                     <div className="flex flex-1 flex-col p-6">
                       <div className="flex flex-wrap items-center gap-2">
                         {p.tags.slice(0, 2).map((t) => (
                           <Badge key={t.id} variant="accent">#{t.slug}</Badge>
                         ))}
                         {p.publishedAt && (
-                          <span className="font-mono text-[11px] text-muted-foreground">
-                            {formatDate(p.publishedAt, { month: true, year: true })}
-                          </span>
+                          <PostDates
+                            publishedAt={p.publishedAt}
+                            updatedAt={p.updatedAt}
+                            className="text-[11px] text-muted-foreground"
+                          />
                         )}
                       </div>
                       <h2 className="mt-4 text-lg font-semibold tracking-tight group-hover:text-accent">

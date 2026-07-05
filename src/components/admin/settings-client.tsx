@@ -42,6 +42,24 @@ const PROVIDER_LABEL: Record<AiProviderId, string> = {
   anthropic: "Anthropic",
   google: "Google Gemini",
   openrouter: "OpenRouter",
+  poolside: "Poolside",
+  minimax: "MiniMax",
+  deepseek: "DeepSeek",
+};
+
+/**
+ * Per-provider hint shown under the API key field. Points the user at
+ * the dashboard that mints a key for the selected provider. Keep
+ * entries short — this slot is a single line.
+ */
+const PROVIDER_KEY_HINT: Record<AiProviderId, string> = {
+  openai: "platform.openai.com → API keys",
+  anthropic: "console.anthropic.com → Settings → API Keys",
+  google: "aistudio.google.com → API keys",
+  openrouter: "openrouter.ai → Keys",
+  poolside: "poolside.ai → Dashboard → API keys",
+  minimax: "platform.minimaxi.com → API Keys",
+  deepseek: "platform.deepseek.com → API Keys",
 };
 
 export function SettingsClient({
@@ -293,7 +311,7 @@ export function SettingsClient({
             hint={
               isConfigured && !editingKey
                 ? `Currently stored: ${savedView?.keyMask}`
-                : "Encrypted with AES-256-GCM before being stored. Never sent to the browser after save."
+                : `Get one at ${PROVIDER_KEY_HINT[provider]}. Encrypted with AES-256-GCM before being stored; never sent back to the browser after save.`
             }
           >
             {isConfigured && !editingKey ? (
@@ -385,7 +403,7 @@ export function SettingsClient({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Tip: OpenRouter gives you access to all major models through one
+            Tip: OpenRouter gives you access to most major models through one
             API key. Rate-limited to 10 requests / minute in the editor.
           </p>
         </CardContent>
