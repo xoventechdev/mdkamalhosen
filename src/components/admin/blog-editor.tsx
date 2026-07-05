@@ -71,15 +71,35 @@ export function BlogEditor({ initial, availableTags, aiStatus }: BlogEditorProps
   const excerpt = watch("excerpt");
   const coverUrl = watch("coverUrl");
   const metaDescription = watch("metaDescription");
-  const [slugTouched, setSlugTouched] = useState(Boolean(initial.slug));
-
-  // Auto-derive slug from title until manually edited.
+  // Treat new-post sentinels (e.g. "untitled-1720123456789" created by
+  // admin/blog/page.tsx newPost()) as "untouched" so the slug auto-derives
+  // from the title on first edit. Once the user actually types in the
+  // slug field, or once the post is published (slug is now part of the
+  // public URL surface), auto-derivation is locked.
+  const initialSlugUntouched =
+    !initial.slug || /^untitled-\d+$/.test(initial.slug);
+  const [slugTouched, setSlugTouched] = useState(!initialSlugUntouched);
+  const [publishedSlugFrozen, setPublishedSlugFrozen] = useState(
+    (initial.status as string) === "published",
+  );
+  // Watch `status` so an Unpublish action re-enables auto-derivation.
+  const statusForWatch = watch("status");
   useEffect(() => {
-    if (!slugTouched && title) {
+    setPublishedSlugFrozen(statusForWatch === "published");
+  }, [statusForWatch]);
+
+  useEffect(() => {
+    if (slugTouched || publishedSlugFrozen) return;
+    if (title) {
       setValue("slug", slugify(title), { shouldDirty: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title]);
+  }, [title, slugTouched, publishedSlugFrozen]);
+
+  function resetSlugFromTitle() {
+    setSlugTouched(false);
+    setValue("slug", slugify(title ?? ""), { shouldDirty: true });
+  }
 
   // Autosave: every 5s if dirty.
   const dirtyRef = useRef(false);
@@ -219,17 +239,36 @@ export function BlogEditor({ initial, availableTags, aiStatus }: BlogEditorProps
             required
             htmlFor="slug"
             error={errors.slug?.message}
-            hint="Auto from title; edit to override."
+            hint={
+              publishedSlugFrozen
+                ? "Published: slug is locked. Unpublish to change."
+                : "Auto from title; edit to override."
+            }
           >
-            <Input
-              id="slug"
-              {...register("slug")}
-              invalid={!!errors.slug}
-              onChange={(e) => {
-                setSlugTouched(true);
-                register("slug").onChange(e);
-              }}
-            />
+            <div className="flex gap-2">
+              <Input
+                id="slug"
+                {...register("slug")}
+                invalid={!!errors.slug}
+                disabled={publishedSlugFrozen}
+                onChange={(e) => {
+                  setSlugTouched(true);
+                  register("slug").onChange(e);
+                }}
+              />
+              {!publishedSlugFrozen && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  onClick={resetSlugFromTitle}
+                  disabled={!title}
+                  title="Re-derive slug from current title"
+                >
+                  Reset
+                </Button>
+              )}
+            </div>
           </Field>
           <Field label="Body (Markdown)" htmlFor="bodyMd" error={errors.bodyMd?.message} hint={`~${minutes} min read`}>
             <MarkdownEditor
@@ -247,16 +286,9 @@ export function BlogEditor({ initial, availableTags, aiStatus }: BlogEditorProps
             currentMeta={metaDescription}
             configured={aiStatus.configured}
             enabled={aiStatus.enabled}
-            onApplyReplacement={(original, replacement) => {
-              const current = getValues("bodyMd") ?? "";
-              if (current.includes(original)) {
-                setValue("bodyMd", current.replace(original, replacement), {
-                  shouldDirty: true,
-                });
-              } else {
-                toast.error("Original text no longer matches; refresh and retry.");
-              }
-            }}
+            onApplyBody={(revised) =>
+              setValue("bodyMd", revised, { shouldDirty: true })
+            }
             onApplyTitle={(t) => setValue("title", t, { shouldDirty: true })}
             onApplyExcerpt={(e) =>
               setValue("excerpt", e, { shouldDirty: true })
@@ -264,6 +296,29 @@ export function BlogEditor({ initial, availableTags, aiStatus }: BlogEditorProps
             onApplyMeta={(m) =>
               setValue("metaDescription", m, { shouldDirty: true })
             }
+            existingTags={tags}
+            onAttachExistingTag={(id) => {
+              if (selectedTagIds.includes(id)) return;
+              const next = [...selectedTagIds, id];
+              setSelectedTagIds(next);
+              setValue("tagIds", next, { shouldDirty: true });
+            }}
+            onCreateAndAttachTag={async (name, slug) => {
+              const res = await createBlogTag({ name, slug });
+              if (!res.ok) {
+                toast.error(res.error);
+                return;
+              }
+              const fresh = { id: res.data.id, name, slug: res.data.slug };
+              setTags((prev) =>
+                prev.find((t) => t.slug === fresh.slug) ? prev : [...prev, fresh],
+              );
+              if (!selectedTagIds.includes(fresh.id)) {
+                const next = [...selectedTagIds, fresh.id];
+                setSelectedTagIds(next);
+                setValue("tagIds", next, { shouldDirty: true });
+              }
+            }}
           />
 
           <Card>

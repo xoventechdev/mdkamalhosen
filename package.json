@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "seed": "tsx src/lib/db/seed.ts",
     "seed:admin": "tsx src/lib/db/seed-admin.ts",
+    "db:dedupe-blog-slugs": "tsx src/lib/db/dedupe-blog-slugs.ts",
     "format": "prettier --write ."
   },
   "dependencies": {
@@ -19,6 +20,7 @@
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
+    "diff": "^7.0.0",
     "framer-motion": "11.18.2",
     "lucide-react": "0.474.0",
     "mongoose": "^8.8.0",
@@ -44,6 +46,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/diff": "^7.0.2",
     "@types/node": "22.13.1",
     "@types/nodemailer": "6.4.14",
     "@types/react": "19.0.8",

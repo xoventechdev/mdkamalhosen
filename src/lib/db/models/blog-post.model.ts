@@ -46,6 +46,7 @@ const BlogPostSchema = new Schema<BlogPostDoc>(
   { timestamps: true, versionKey: false, collection: "blog_posts" },
 );
 
+BlogPostSchema.index({ slug: 1 }, { unique: true });
 BlogPostSchema.index({ status: 1, publishedAt: -1 });
 BlogPostSchema.index({ updatedAt: -1 });
 BlogPostSchema.index({ tagIds: 1 });

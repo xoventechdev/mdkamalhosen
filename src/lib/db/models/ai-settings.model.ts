@@ -20,6 +20,13 @@ import { AI_PROVIDER_IDS, type AiProviderId } from "@/lib/schemas";
 export interface AiSettingsDoc {
   provider: AiProviderId;
   model: string;
+  /**
+   * Optional secondary model used for cheap, structured-output tasks:
+   * summary, title, SEO meta. If unset, falls back to `model`.
+   * We don't validate this against `AI_DEFAULT_MODELS` because owners
+   * may know about new releases before the curated list does.
+   */
+  cheaperModel?: string | null;
   /** AES-256-GCM hex blob in the form `iv:tag:ciphertext`. */
   encryptedKey: string;
   /** UI-only preview (first 4 chars + mask). Never the plaintext. */
@@ -34,6 +41,7 @@ const AiSettingsSchema = new Schema<AiSettingsDoc>(
   {
     provider: { type: String, enum: AI_PROVIDER_IDS, required: true },
     model: { type: String, required: true, maxlength: 200 },
+    cheaperModel: { type: String, default: null, maxlength: 200 },
     encryptedKey: { type: String, required: true, maxlength: 4000 },
     keyMask: { type: String, required: true, maxlength: 64 },
     enabled: { type: Boolean, default: true, required: true },

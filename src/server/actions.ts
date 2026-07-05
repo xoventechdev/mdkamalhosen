@@ -1126,7 +1126,7 @@ export async function saveAiSettings(
   }
   const parsed = aiSettingsSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error);
-  const { provider, model, apiKey, enabled } = parsed.data;
+  const { provider, model, cheaperModel, apiKey, enabled } = parsed.data;
   try {
     const encrypted = encryptSecret(apiKey);
     const keyMask = maskSecret(apiKey);
@@ -1137,6 +1137,7 @@ export async function saveAiSettings(
         $set: {
           provider,
           model,
+          cheaperModel: cheaperModel ?? null,
           encryptedKey: encrypted,
           keyMask,
           enabled,
@@ -1150,6 +1151,7 @@ export async function saveAiSettings(
       action: "saveAiSettings",
       provider,
       model,
+      cheaperModel: cheaperModel ?? null,
     });
     return ok({ keyMask });
   } catch (e) {

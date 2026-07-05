@@ -386,6 +386,18 @@ export const AI_DEFAULT_MODELS: Record<AiProviderId, readonly string[]> = {
 export const aiSettingsSchema = z.object({
   provider: z.enum(AI_PROVIDER_IDS),
   model: z.string().trim().min(1, "Model is required.").max(200),
+  /**
+   * Optional cheaper model used for structured tasks (summary, titles,
+   * SEO meta). Falls back to `model` when empty. Stored as a plain
+   * string — we don't pin to a curated list so new releases "just work".
+   */
+  cheaperModel: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .or(z.literal(""))
+    .transform((s) => (s ? s : undefined)),
   apiKey: z
     .string()
     .min(1, "API key is required.")
@@ -396,24 +408,50 @@ export type AiSettingsInput = z.input<typeof aiSettingsSchema>;
 export type AiSettingsOutput = z.output<typeof aiSettingsSchema>;
 
 /**
- * Response shape from the AI review API. Used to validate model output
- * before we trust it (the model can occasionally produce malformed JSON
- * or add extra commentary — we strip everything except the schema).
+ * Response shape from the AI review API. The review mode now returns a
+ * full revised body plus a sparse change list — the editor renders an
+ * inline diff and lets the user accept the whole revision or keep the
+ * original. This replaced the previous "25 surgical suggestions"
+ * shape, which required brittle substring matching and 25 clicks.
+ *
+ * Validated before we trust it (the model can occasionally produce
+ * malformed JSON or add commentary — we strip everything except the
+ * schema on the route side).
  */
-export const aiReviewSuggestionSchema = z.object({
-  suggestions: z
+export const aiReviewRevisionSchema = z.object({
+  /**
+   * The complete revised body, same Markdown structure as the input.
+   * Replaces `bodyMd` when the user clicks "Take AI".
+   */
+  revisedBody: z.string().min(1).max(60_000),
+  /**
+   * 1–3 sentence explanation of what changed and why. Shown above
+   * the diff. Empty string is OK if the model produced no rationale.
+   */
+  rationale: z.string().max(1_000).default(""),
+  /**
+   * Sparse change list for highlighting only — NOT applied
+   * individually. Coordinates are character indices into the
+   * ORIGINAL body (the editor body, not `revisedBody`). The
+   * highlight renderer recomputes the diff itself; this field is
+   * for in-column tooltips.
+   */
+  changes: z
     .array(
       z.object({
-        id: z.string(),
-        original: z.string().min(1).max(2000),
-        replacement: z.string().min(1).max(2000),
-        rationale: z.string().min(1).max(500),
-        severity: z.enum(["grammar", "clarity", "style"]),
+        /** 0-based character index into the original body, inclusive. */
+        start: z.number().int().min(0),
+        /** 0-based character index into the original body, exclusive. */
+        end: z.number().int().min(0),
+        /** What the model replaced this span with. */
+        newText: z.string().max(2_000),
+        /** One-sentence per-change explanation. Optional. */
+        explanation: z.string().max(300).optional(),
       }),
     )
-    .max(50),
+    .max(100),
 });
-export type AiReviewSuggestion = z.output<typeof aiReviewSuggestionSchema>;
+export type AiReviewRevision = z.output<typeof aiReviewRevisionSchema>;
 
 export const aiTitlesSchema = z.object({
   title: z.string().min(1).max(200),
@@ -422,6 +460,32 @@ export const aiTitlesSchema = z.object({
 export type AiTitlesResult = z.output<typeof aiTitlesSchema>;
 
 export const aiSeoSchema = z.object({
-  metaDescription: z.string().min(50).max(200),
+  // SEO meta descriptions are typically 110–155 chars (Google's pixel
+  // budget), but models — especially on short posts — frequently
+  // return 60–110 char descriptions that are still useful. Accept
+  // anything from 30 chars upward; the route can clamp or warn on
+  // the very-short end if we ever care.
+  metaDescription: z.string().min(30).max(200),
 });
 export type AiSeoResult = z.output<typeof aiSeoSchema>;
+
+/**
+ * Tag suggestions for a blog post. The route validates a list of
+ * normalised tags (lowercase, hyphen-separated, 1-30 chars) which the
+ * client can either select directly (if the tag already exists) or
+ * create via the existing `createBlogTag` server action.
+ */
+export const aiTagsSchema = z.object({
+  suggestedTags: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(1)
+        .max(30)
+        .transform((s) => s.toLowerCase().replace(/\s+/g, "-")),
+    )
+    .min(1)
+    .max(5),
+});
+export type AiTagsResult = z.output<typeof aiTagsSchema>;

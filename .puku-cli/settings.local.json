@@ -18,7 +18,12 @@
       "Bash(ls -la /h/Personal/Job/Me/mdkamalhosen/src/app/'\\(site\\)')",
       "Bash(ls -la /h/Personal/Job/Me/mdkamalhosen/src/app/'\\(site\\)'/blog)",
       "Bash(ls -la /h/Personal/Job/Me/mdkamalhosen/src/app/'\\(site\\)'/blog/'[slug]')",
-      "Bash(ls -la /h/Personal/Job/Me/mdkamalhosen/src/app/'\\(site\\)'/blog/tag)"
+      "Bash(ls -la /h/Personal/Job/Me/mdkamalhosen/src/app/'\\(site\\)'/blog/tag)",
+      "Bash(grep -n \"slug\" /h/Personal/Job/Me/mdkamalhosen/src/lib/db/*.ts)",
+      "Bash(npm install:*)",
+      "Bash(echo \"EXIT=$?\")",
+      "Read(//tmp/**)",
+      "Bash(echo EXIT=$?)"
     ]
   }
 }
