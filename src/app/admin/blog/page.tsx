@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Eye } from "lucide-react";
 import { Types } from "mongoose";
 import {
   connect,
   BlogPostModel,
   BlogTagModel,
+  PageViewModel,
   toClient,
 } from "@/lib/db";
 import {
@@ -18,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatDateTime } from "@/lib/utils";
+import { compactCount, formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -91,11 +92,41 @@ export default async function AdminBlogPage() {
     slug: string;
   }>;
   const tagById = new Map(tags.map((t) => [t.id, t]));
+
+  // One aggregation for view counts across every post (and draft) in
+  // the table — keyed by ObjectId so we can stitch back even after
+  // the post row's been hidden by tag resolution. We never want a
+  // missing tag to also hide the view column.
+  const allPostObjectIds = posts
+    .map((p) => {
+      try {
+        return new Types.ObjectId(p.id);
+      } catch {
+        return null;
+      }
+    })
+    .filter((id): id is Types.ObjectId => id !== null);
+  const viewAgg = allPostObjectIds.length
+    ? await PageViewModel.aggregate<{ _id: Types.ObjectId; count: number }>([
+        {
+          $match: {
+            kind: "post",
+            postId: { $in: allPostObjectIds },
+          },
+        },
+        { $group: { _id: "$postId", count: { $sum: 1 } } },
+      ])
+    : [];
+  const viewById = new Map<string, number>(
+    viewAgg.map((v) => [v._id.toString(), v.count]),
+  );
+
   const rows = posts.map((p) => ({
     ...p,
     tags: (p.tagIds ?? [])
       .map((id) => tagById.get(id))
       .filter((t): t is (typeof tags)[number] => Boolean(t)),
+    viewCount: viewById.get(p.id) ?? 0,
   }));
 
   return (
@@ -116,12 +147,13 @@ export default async function AdminBlogPage() {
             <TableHead>Tags</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Published</TableHead>
+            <TableHead className="w-28 text-right">Views</TableHead>
             <TableHead className="w-32 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.length === 0 ? (
-            <TableEmpty colSpan={5}>No posts yet.</TableEmpty>
+            <TableEmpty colSpan={6}>No posts yet.</TableEmpty>
           ) : (
             rows.map((row) => (
               <TableRow key={row.id}>
@@ -146,6 +178,15 @@ export default async function AdminBlogPage() {
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {row.publishedAt ? formatDateTime(row.publishedAt) : "—"}
+                </TableCell>
+                <TableCell className="text-right">
+                  <span
+                    className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground"
+                    title={`${row.viewCount.toLocaleString()} views`}
+                  >
+                    <Eye className="h-3 w-3" aria-hidden="true" />
+                    {compactCount(row.viewCount)}
+                  </span>
                 </TableCell>
                 <TableCell className="text-right">
                   <Button asChild size="sm" variant="secondary">

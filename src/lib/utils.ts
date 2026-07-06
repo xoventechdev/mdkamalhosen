@@ -60,6 +60,25 @@ export function absoluteUrl(path: string): string {
   return new URL(path, base).toString();
 }
 
+/**
+ * Compact integer formatter for view counts. Mirrors the shape used
+ * by GitHub: 999 → "999", 1_234 → "1.2k", 12_345 → "12k",
+ * 1_234_567 → "1.2m". Pure-function so it works in Server Components
+ * too.
+ */
+export function compactCount(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return "0";
+  if (n < 1_000) return String(Math.round(n));
+  if (n < 1_000_000) {
+    const v = n / 1_000;
+    const rounded = v >= 100 ? Math.round(v) : Math.round(v * 10) / 10;
+    return `${rounded}k`;
+  }
+  const v = n / 1_000_000;
+  const rounded = v >= 100 ? Math.round(v) : Math.round(v * 10) / 10;
+  return `${rounded}m`;
+}
+
 export function initials(name: string): string {
   return name
     .split(/\s+/u)

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Calendar } from "lucide-react";
+import { ArrowRight, Calendar, Eye } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { Badge } from "@/components/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { getPublishedPosts } from "@/server/queries";
-import { absoluteUrl } from "@/lib/utils";
+import { getPublishedPosts, getBatchPostViewCounts } from "@/server/queries";
+import { absoluteUrl, compactCount } from "@/lib/utils";
 import { PostDates } from "@/components/post-dates";
 
 export const revalidate = 60;
@@ -39,7 +39,13 @@ export const metadata: Metadata = {
 async function loadPosts() {
   try {
     const rows = await getPublishedPosts();
+    // One aggregation round-trip for the whole listing — keeps
+    // render time flat regardless of post count.
+    const viewCounts = await getBatchPostViewCounts(
+      rows.map((r) => r.id),
+    );
     return rows.map((p) => ({
+      id: p.id,
       slug: p.slug,
       title: p.title,
       excerpt: p.excerpt,
@@ -51,6 +57,7 @@ async function loadPosts() {
       readingMinutes: p.readingMinutes,
       tags: p.tags.map((t) => t.slug),
       coverUrl: p.coverUrl,
+      viewCount: viewCounts[p.id] ?? 0,
     }));
   } catch (e) {
     console.error("[blog] loadPosts failed:", e);
@@ -136,9 +143,20 @@ export default async function BlogPage() {
                             {p.excerpt}
                           </p>
                         )}
-                        <p className="mt-5 inline-flex items-center gap-1 font-mono text-xs text-muted-foreground">
-                          <span className="opacity-70">·</span>
-                          {p.readingMinutes} min read
+                        <p className="mt-5 inline-flex items-center gap-3 font-mono text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-1">
+                            <span className="opacity-70">·</span>
+                            {p.readingMinutes} min read
+                          </span>
+                          {p.viewCount > 0 && (
+                            <span
+                              className="inline-flex items-center gap-1"
+                              title={`${p.viewCount.toLocaleString()} views`}
+                            >
+                              <Eye className="h-3 w-3" aria-hidden="true" />
+                              {compactCount(p.viewCount)}
+                            </span>
+                          )}
                         </p>
                       </div>
                     </Link>

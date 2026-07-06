@@ -13,6 +13,7 @@ import {
   Wrench,
   User,
   MessageSquare,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ const ICONS: Record<string, LucideIcon> = {
   Wrench,
   User,
   MessageSquare,
+  BarChart3,
 };
 
 export interface NavLinkProps {

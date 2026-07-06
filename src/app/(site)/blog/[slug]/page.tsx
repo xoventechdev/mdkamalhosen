@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight, Calendar, Clock } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, Clock, Eye } from "lucide-react";
 import { ReadingProgress } from "@/components/reading-progress";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { Badge } from "@/components/badge";
 import { JsonLd } from "@/components/json-ld";
 import { CommentsSection } from "@/components/comments/comments-section";
-import { getPostBySlug, getPublishedPosts } from "@/server/queries";
+import { PageViewTracker } from "@/components/analytics/page-view-tracker";
+import {
+  getPostBySlug,
+  getPublishedPosts,
+  getPostViewCount,
+} from "@/server/queries";
 import { renderMarkdown, extractToc } from "@/lib/markdown";
-import { absoluteUrl } from "@/lib/utils";
+import { absoluteUrl, compactCount } from "@/lib/utils";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
 import { PostDates } from "@/components/post-dates";
 
@@ -84,8 +89,19 @@ export default async function BlogPostPage({ params }: PageProps) {
   const prev = idx > 0 ? all[idx - 1] : null;
   const next = idx >= 0 && idx < all.length - 1 ? all[idx + 1] : null;
 
+  // View count is cached per post id; the tracker below records the
+  // hit. We surface the compact form in the hero and offer the raw
+  // total via the title attribute.
+  const viewCount = await getPostViewCount(post.id).catch(() => 0);
+  const viewLabel = compactCount(viewCount);
+
   return (
     <>
+      {/* Per-post tracker. The site-wide tracker also fires on this
+          route as a generic "page" event; this one tags the hit with
+          the post id so the blog-post analytics roll up cleanly. */}
+      <PageViewTracker postId={post.id} />
+
       {/* JSON-LD: Article + BreadcrumbList */}
       <JsonLd
         data={[articleJsonLd({
@@ -159,6 +175,13 @@ export default async function BlogPostPage({ params }: PageProps) {
               <span className="inline-flex items-center gap-1.5">
                 <Clock className="h-4 w-4" aria-hidden="true" />
                 {post.readingMinutes} min read
+              </span>
+              <span
+                className="inline-flex items-center gap-1.5"
+                title={`${viewCount.toLocaleString()} views`}
+              >
+                <Eye className="h-4 w-4" aria-hidden="true" />
+                {viewLabel} {viewCount === 1 ? "view" : "views"}
               </span>
               {post.tags.length > 0 && (
                 <span className="flex flex-wrap gap-1.5">

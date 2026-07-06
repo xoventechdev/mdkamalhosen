@@ -6,6 +6,7 @@ import {
   Briefcase,
   GraduationCap,
   Plus,
+  BarChart3,
 } from "lucide-react";
 import {
   connect,
@@ -13,6 +14,7 @@ import {
   BlogPostModel,
   MessageModel,
   ActivityLogModel,
+  PageViewModel,
   toClient,
 } from "@/lib/db";
 import {
@@ -24,21 +26,29 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/utils";
+import { compactCount, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 async function loadStats() {
   await connect();
-  const [published, drafts, publishedPosts, draftPosts, unreadMessages, recentDocs] =
-    await Promise.all([
-      ProjectModel.countDocuments({ status: "published" }),
-      ProjectModel.countDocuments({ status: "draft" }),
-      BlogPostModel.countDocuments({ status: "published" }),
-      BlogPostModel.countDocuments({ status: "draft" }),
-      MessageModel.countDocuments({ readAt: null, archived: false }),
-      ActivityLogModel.find({}).sort({ createdAt: -1 }).limit(10).lean(),
-    ]);
+  const [
+    published,
+    drafts,
+    publishedPosts,
+    draftPosts,
+    unreadMessages,
+    recentDocs,
+    totalViews,
+  ] = await Promise.all([
+    ProjectModel.countDocuments({ status: "published" }),
+    ProjectModel.countDocuments({ status: "draft" }),
+    BlogPostModel.countDocuments({ status: "published" }),
+    BlogPostModel.countDocuments({ status: "draft" }),
+    MessageModel.countDocuments({ readAt: null, archived: false }),
+    ActivityLogModel.find({}).sort({ createdAt: -1 }).limit(10).lean(),
+    PageViewModel.countDocuments({}),
+  ]);
   const recent = toClient(recentDocs) as unknown as Array<{
     id: string;
     action: string;
@@ -47,7 +57,15 @@ async function loadStats() {
     userEmail: string;
     createdAt?: Date;
   }>;
-  return { published, drafts, publishedPosts, draftPosts, unreadMessages, recent };
+  return {
+    published,
+    drafts,
+    publishedPosts,
+    draftPosts,
+    unreadMessages,
+    recent,
+    totalViews,
+  };
 }
 
 export default async function AdminDashboard() {
@@ -82,6 +100,13 @@ export default async function AdminDashboard() {
       icon: Briefcase,
       href: "/admin/settings",
     },
+    {
+      label: "Total views",
+      value: stats.totalViews,
+      hint: `${stats.totalViews.toLocaleString()} tracked`,
+      icon: BarChart3,
+      href: "/admin/analytics",
+    },
   ];
 
   return (
@@ -104,7 +129,11 @@ export default async function AdminDashboard() {
                 <tile.icon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{tile.value}</div>
+                <div className="text-3xl font-bold">
+                  {tile.label === "Total views"
+                    ? compactCount(tile.value)
+                    : tile.value}
+                </div>
                 <p className="mt-1 text-xs text-muted-foreground">{tile.hint}</p>
               </CardContent>
             </Card>
