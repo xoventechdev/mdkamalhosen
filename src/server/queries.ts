@@ -591,7 +591,7 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
     ]),
     PageViewModel.find({})
       .sort({ createdAt: -1 })
-      .limit(20)
+      .limit(10)
       .select("path kind slug createdAt")
       .lean(),
   ]);

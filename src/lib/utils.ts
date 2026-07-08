@@ -108,3 +108,34 @@ export function dateRange(start: Date | string, end: Date | string | null | unde
   const endLabel = end ? formatDate(end, { month: false, year: true }) : "Present";
   return `${startLabel} — ${endLabel}`;
 }
+
+/**
+ * Format a date as a short relative string for admin feeds, e.g.
+ * "just now" (<45s), "3m ago", "2h ago", "yesterday", "5d ago",
+ * "3w ago", or falls back to `formatDate` for anything older than ~5 weeks.
+ *
+ * Uses UTC second-deltas for stability across server-rendered output.
+ * Returns "—" for null/invalid input.
+ */
+export function formatRelative(date: Date | string | null | undefined): string {
+  if (date === null || date === undefined || date === "") return "—";
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return "—";
+  const diffMs = Date.now() - d.getTime();
+  const sec = Math.round(diffMs / 1000);
+  if (sec < 45) return "just now";
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  // For ≥24h, use day-aligned math so "yesterday" appears once a day has
+  // elapsed at the same UTC time.
+  const dayMs = 24 * 60 * 60 * 1000;
+  const days = Math.floor(diffMs / dayMs);
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks}w ago`;
+  return formatDate(d);
+}

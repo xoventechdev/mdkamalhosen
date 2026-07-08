@@ -264,7 +264,7 @@ export default async function AdminAnalyticsPage() {
         <CardHeader>
           <CardTitle>Recent views</CardTitle>
           <CardDescription>
-            Latest 20 tracked hits across the public site.
+            Latest 10 tracked hits across the public site.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">

@@ -30,7 +30,14 @@
       "Bash(echo LINT=$?)",
       "Bash(echo \"BUILD=$?\")",
       "Bash(awk 'NR>=230 && NR<=265' src/server/queries.ts)",
-      "Bash(awk 'NR>=633 && NR<=645' \"src/app/page.tsx\")"
+      "Bash(awk 'NR>=633 && NR<=645' \"src/app/page.tsx\")",
+      "Bash(ls /h/Personal/Job/Me/mdkamalhosen/src/app/'\\(site\\)'/projects)",
+      "Bash(ls /h/Personal/Job/Me/mdkamalhosen/src/app/'\\(site\\)'/about)",
+      "Bash(ls /h/Personal/Job/Me/mdkamalhosen/src/app/'\\(site\\)'/blog)",
+      "Bash(mv \"src/app/\\(site/\\)/layout.tsx\" \"src/app/\\(site\\)/layout.tsx\")",
+      "Bash(rmdir \"src/app/\\(site/\\)\")",
+      "Bash(ls \"src/app/\\(site\\)/\")",
+      "Bash(cmd //c \"dir /x src\\\\app\")"
     ]
   }
 }
