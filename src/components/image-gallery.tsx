@@ -90,23 +90,23 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
         </div>
       </div>
 
-      {/* Modal for image viewing - positioned above header with high z-index */}
+      {/* Modal for image viewing - always centered in viewport */}
       {isModalOpen && selectedIndex !== null && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-lg"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-lg p-4"
           onClick={closeModal}
           role="dialog"
           aria-modal="true"
           aria-label="Image viewer"
         >
           <div
-            className="relative w-full max-w-[90vw] max-h-[90vh] flex items-center justify-center"
+            className="relative w-full max-w-[90vw] max-h-[90vh] flex flex-col items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close button - top right */}
             <button
               onClick={closeModal}
-              className="absolute top-4 right-4 z-20 rounded-full bg-black/50 p-2 text-white/90 hover:bg-black/70 hover:text-white transition-all duration-200"
+              className="absolute top-0 right-0 -mt-10 -mr-4 z-20 rounded-full bg-black/50 p-2 text-white/90 hover:bg-black/70 hover:text-white transition-all duration-200"
               aria-label="Close image viewer"
             >
               <X className="h-6 w-6" />
@@ -118,7 +118,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
                 e.stopPropagation();
                 navigateImage("prev");
               }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/50 p-2 text-white/90 hover:bg-black/70 hover:text-white transition-all duration-200 disabled:opacity-50"
+              className="absolute left-0 top-1/2 -translate-y-1/2 -ml-12 z-20 rounded-full bg-black/50 p-2 text-white/90 hover:bg-black/70 hover:text-white transition-all duration-200 disabled:opacity-50"
               aria-label="Previous image"
               disabled={images.length <= 1}
             >
@@ -131,20 +131,26 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
                 e.stopPropagation();
                 navigateImage("next");
               }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-20 rounded-full bg-black/50 p-2 text-white/90 hover:bg-black/70 hover:text-white transition-all duration-200 disabled:opacity-50"
+              className="absolute right-0 top-1/2 -translate-y-1/2 -mr-12 z-20 rounded-full bg-black/50 p-2 text-white/90 hover:bg-black/70 hover:text-white transition-all duration-200 disabled:opacity-50"
               aria-label="Next image"
               disabled={images.length <= 1}
             >
               <ChevronRight className="h-6 w-6" />
             </button>
 
-            {/* Image with max height to prevent header overlap */}
-            <div className="flex flex-col items-center max-h-[85vh]">
-              <img
-                src={images[selectedIndex]}
-                alt={`Full view - ${title} screenshot ${selectedIndex + 1}`}
-                className="max-w-full max-h-[75vh] object-contain rounded-lg"
-              />
+            {/* Image container - centered and constrained */}
+            <div className="flex flex-col items-center justify-center w-full h-full">
+              <div className="flex items-center justify-center max-h-[75vh] w-full">
+                <img
+                  src={images[selectedIndex]}
+                  alt={`Full view - ${title} screenshot ${selectedIndex + 1}`}
+                  className="max-w-full max-h-[75vh] object-contain rounded-lg"
+                  style={{
+                    maxWidth: 'min(90vw, 1200px)',
+                    maxHeight: '75vh'
+                  }}
+                />
+              </div>
 
               {/* Image counter */}
               <div className="mt-4 flex items-center gap-4">
@@ -155,7 +161,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
             </div>
 
             {/* Instructions */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center">
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 -mb-8 text-center">
               <p className="text-xs text-white/50">
                 Press ESC to close | Use arrow keys or buttons to navigate
               </p>
