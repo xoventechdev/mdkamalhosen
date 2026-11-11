@@ -29,9 +29,9 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
     if (selectedIndex === null) return;
 
     if (direction === "next") {
-      setSelectedIndex((prev) => (prev + 1) % images.length);
+      setSelectedIndex((prev) => prev !== null ? (prev + 1) % images.length : 0);
     } else {
-      setSelectedIndex((prev) => (prev - 1 + images.length) % images.length);
+      setSelectedIndex((prev) => prev !== null ? (prev - 1 + images.length) % images.length : 0);
     }
   };
 
