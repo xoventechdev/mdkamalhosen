@@ -312,28 +312,6 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   </ScrollReveal>
                 );
               })}
-
-              {/* Gallery */}
-              {gallery.length > 0 && (
-                <ScrollReveal>
-                  <div className="glass-card p-6 sm:p-7">
-                    <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                      Gallery
-                    </p>
-                    <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                      {gallery.map((url, i) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          key={i}
-                          src={url}
-                          alt={`${project.title} screenshot ${i + 1}`}
-                          className="rounded-xl border border-border"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </ScrollReveal>
-              )}
             </div>
 
             {/* Side column — quick facts */}
