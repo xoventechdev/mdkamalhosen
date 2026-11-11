@@ -78,8 +78,7 @@ export function ScrollReveal({
     // If the element is already in view at mount, reveal after the stagger
     // delay. Below-the-fold elements wait for the observer.
     const rect = el.getBoundingClientRect();
-    const alreadyInView =
-      rect.top < window.innerHeight && rect.bottom > 0;
+    const alreadyInView = rect.top < window.innerHeight && rect.bottom > 0;
 
     if (alreadyInView) {
       const t = window.setTimeout(() => setRevealed(true), safeDelay);
@@ -110,16 +109,25 @@ export function ScrollReveal({
   // We avoid CSS @keyframes here so the transition duration is fully
   // controlled by us (the `transition` class) and respects prefers-reduced-motion
   // via globals.css.
+  // Note: once revealed we remove the transform entirely (undefined) instead
+  // of leaving `translateY(0)`. Any non-none transform on an ancestor becomes
+  // the containing block for fixed-position descendants (modals, popovers),
+  // which breaks their viewport centering. `transform: none` interpolates as
+  // the identity matrix, so the reveal animation is unaffected.
   const style: CSSProperties = {
     opacity: revealed ? 1 : 0,
-    transform: revealed ? "translateY(0)" : "translateY(12px)",
+    transform: revealed ? undefined : "translateY(12px)",
     transition: `opacity ${REVEAL_DURATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1), transform ${REVEAL_DURATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
     willChange: revealed ? undefined : "opacity, transform",
   };
 
   // Cast through `unknown` because the ref's element type depends on `as`.
   return (
-    <Tag ref={ref as unknown as React.Ref<never>} className={className} style={style}>
+    <Tag
+      ref={ref as unknown as React.Ref<never>}
+      className={className}
+      style={style}
+    >
       {children}
     </Tag>
   );
