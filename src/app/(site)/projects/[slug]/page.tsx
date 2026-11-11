@@ -11,6 +11,7 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { CategoryBadge } from "@/components/badge";
+import { ImageGallery } from "@/components/image-gallery";
 import { JsonLd } from "@/components/json-ld";
 import { getProjectBySlug, getPublishedProjects } from "@/server/queries";
 import { paragraphs, absoluteUrl } from "@/lib/utils";
@@ -194,6 +195,15 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
       <section>
         <div className="container py-12 md:py-16">
+          {/* Gallery at the top */}
+          {gallery.length > 0 && (
+            <div className="mb-12">
+              <ScrollReveal>
+                <ImageGallery images={gallery} title={project.title} />
+              </ScrollReveal>
+            </div>
+          )}
+
           {/* Meta row + actions */}
           <div className="mb-12 flex flex-wrap items-center gap-3">
             <CategoryBadge category={project.category as "bms" | "software" | "iot" | "android"} />
