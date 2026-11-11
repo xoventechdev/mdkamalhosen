@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { X, Expand, Eye, ChevronLeft, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface ImageGalleryProps {
   images: string[];
@@ -56,6 +55,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
 
   return (
     <>
+      {/* Gallery Grid */}
       <div className="glass-card p-6 sm:p-7">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -90,84 +90,87 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
         </div>
       </div>
 
-      {/* Modal for image viewing - always centered in viewport */}
+      {/* Modal - Always centered in viewport */}
       {isModalOpen && selectedIndex !== null && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-lg p-4"
-          onClick={closeModal}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Image viewer"
-        >
+        <>
+          {/* Backdrop - covers entire viewport */}
           <div
-            className="relative w-full max-w-[90vw] max-h-[90vh] flex flex-col items-center justify-center"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-lg"
+            onClick={closeModal}
+            aria-hidden="true"
+          />
+
+          {/* Modal Content - absolutely centered */}
+          <div
+            className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Image viewer"
           >
-            {/* Close button - top right */}
-            <button
-              onClick={closeModal}
-              className="absolute top-0 right-0 -mt-10 -mr-4 z-20 rounded-full bg-black/50 p-2 text-white/90 hover:bg-black/70 hover:text-white transition-all duration-200"
-              aria-label="Close image viewer"
+            <div
+              className="relative max-w-[90vw] max-h-[90vh] w-full h-full flex flex-col items-center justify-center pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X className="h-6 w-6" />
-            </button>
+              {/* Close button - top right */}
+              <button
+                onClick={closeModal}
+                className="absolute top-0 right-0 -mt-12 -mr-4 z-20 rounded-full bg-black/50 p-2 text-white/90 hover:bg-black/70 hover:text-white transition-all duration-200"
+                aria-label="Close image viewer"
+              >
+                <X className="h-6 w-6" />
+              </button>
 
-            {/* Previous button - left side */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                navigateImage("prev");
-              }}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -ml-12 z-20 rounded-full bg-black/50 p-2 text-white/90 hover:bg-black/70 hover:text-white transition-all duration-200 disabled:opacity-50"
-              aria-label="Previous image"
-              disabled={images.length <= 1}
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
+              {/* Previous button - left side */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigateImage("prev");
+                }}
+                className="absolute left-0 top-1/2 -translate-y-1/2 -ml-14 z-20 rounded-full bg-black/50 p-2 text-white/90 hover:bg-black/70 hover:text-white transition-all duration-200 disabled:opacity-50"
+                aria-label="Previous image"
+                disabled={images.length <= 1}
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
 
-            {/* Next button - right side */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                navigateImage("next");
-              }}
-              className="absolute right-0 top-1/2 -translate-y-1/2 -mr-12 z-20 rounded-full bg-black/50 p-2 text-white/90 hover:bg-black/70 hover:text-white transition-all duration-200 disabled:opacity-50"
-              aria-label="Next image"
-              disabled={images.length <= 1}
-            >
-              <ChevronRight className="h-6 w-6" />
-            </button>
+              {/* Next button - right side */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigateImage("next");
+                }}
+                className="absolute right-0 top-1/2 -translate-y-1/2 -mr-14 z-20 rounded-full bg-black/50 p-2 text-white/90 hover:bg-black/70 hover:text-white transition-all duration-200 disabled:opacity-50"
+                aria-label="Next image"
+                disabled={images.length <= 1}
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
 
-            {/* Image container - centered and constrained */}
-            <div className="flex flex-col items-center justify-center w-full h-full">
-              <div className="flex items-center justify-center max-h-[75vh] w-full">
+              {/* Image Container - centered */}
+              <div className="flex flex-col items-center justify-center w-full h-full">
                 <img
                   src={images[selectedIndex]}
                   alt={`Full view - ${title} screenshot ${selectedIndex + 1}`}
-                  className="max-w-full max-h-[75vh] object-contain rounded-lg"
-                  style={{
-                    maxWidth: 'min(90vw, 1200px)',
-                    maxHeight: '75vh'
-                  }}
+                  className="max-w-[80vw] max-h-[70vh] object-contain rounded-lg"
                 />
+
+                {/* Image counter */}
+                <div className="mt-4">
+                  <span className="text-sm text-white/80">
+                    {selectedIndex + 1} / {images.length}
+                  </span>
+                </div>
               </div>
 
-              {/* Image counter */}
-              <div className="mt-4 flex items-center gap-4">
-                <span className="text-sm text-white/80">
-                  {selectedIndex + 1} / {images.length}
-                </span>
+              {/* Instructions */}
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 -mb-10 text-center">
+                <p className="text-xs text-white/50">
+                  Press ESC to close | Arrow keys to navigate
+                </p>
               </div>
-            </div>
-
-            {/* Instructions */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 -mb-8 text-center">
-              <p className="text-xs text-white/50">
-                Press ESC to close | Use arrow keys or buttons to navigate
-              </p>
             </div>
           </div>
-        </div>
+        </>
       )}
     </>
   );
