@@ -216,7 +216,7 @@ export default async function RootLayout({
       <Head>
         {/* Preconnect to critical third-party domains */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin />
         <link rel="preconnect" href="https://va.vercel-insights.com" />
 
         {/* Preload critical CSS */}

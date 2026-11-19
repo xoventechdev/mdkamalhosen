@@ -23,19 +23,19 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const openModal = (index: number) => {
+  const openModal = useCallback((index: number) => {
     setSelectedIndex(index);
     setIsModalOpen(true);
     document.body.style.overflow = "hidden";
-  };
+  }, []);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setIsModalOpen(false);
     setSelectedIndex(null);
     document.body.style.overflow = "auto";
-  };
+  }, []);
 
-  const navigateImage = (direction: "next" | "prev") => {
+  const navigateImage = useCallback((direction: "next" | "prev") => {
     if (selectedIndex === null) return;
 
     if (direction === "next") {
@@ -43,7 +43,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
     } else {
       setSelectedIndex((prev) => prev !== null ? (prev - 1 + images.length) % images.length : 0);
     }
-  };
+  }, [selectedIndex, images.length]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!isModalOpen) return;
