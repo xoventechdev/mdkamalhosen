@@ -17,21 +17,25 @@ import { getProfile } from "@/server/queries";
 // contact surface from "actively looking" to "established professional".
 const SEEKING_DESCRIPTION =
   "Get in touch with Md Kamal Hosen — BMS Engineer, open to relocation anywhere for the right opportunity.";
-const NEUTRAL_DESCRIPTION =
-  "Get in touch with Md Kamal Hosen — BMS Engineer.";
+const NEUTRAL_DESCRIPTION = "Get in touch with Md Kamal Hosen — BMS Engineer.";
 const SEEKING_HEADER =
   "I'm open to relocation anywhere for the right opportunity. Recruiters, contractors, and consultants welcome — I usually reply within a day or two.";
 const NEUTRAL_HEADER =
   "Recruiters, contractors, and consultants welcome — I usually reply within a day or two.";
-const SEEKING_OG_SUBTITLE = "Open+to+relocation+anywhere+for+the+right+opportunity";
+const SEEKING_OG_SUBTITLE =
+  "Open+to+relocation+anywhere+for+the+right+opportunity";
 const NEUTRAL_OG_SUBTITLE = "Recruiters,+contractors,+and+consultants+welcome";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const profile = (await getProfile()) as { lookingToNewOpportunity?: boolean } | null;
+  const profile = (await getProfile().catch(() => null)) as {
+    lookingToNewOpportunity?: boolean;
+  } | null;
   const showJob = profile?.lookingToNewOpportunity ?? true;
   const description = showJob ? SEEKING_DESCRIPTION : NEUTRAL_DESCRIPTION;
   const ogSubtitle = showJob ? SEEKING_OG_SUBTITLE : NEUTRAL_OG_SUBTITLE;
-  const ogImage = absoluteUrl(`/api/og?type=default&title=Contact&subtitle=${ogSubtitle}`);
+  const ogImage = absoluteUrl(
+    `/api/og?type=default&title=Contact&subtitle=${ogSubtitle}`,
+  );
   return {
     title: "Contact",
     description,
@@ -41,7 +45,14 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       url: absoluteUrl("/contact"),
       type: "website",
-      images: [{ url: ogImage, width: 1200, height: 630, alt: "Contact — Md Kamal Hosen" }],
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: "Contact — Md Kamal Hosen",
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
@@ -53,7 +64,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ContactPage() {
-  const profile = (await getProfile()) as {
+  const profile = (await getProfile().catch(() => null)) as {
     name?: string;
     location?: string;
     lookingToNewOpportunity?: boolean;
@@ -134,14 +145,17 @@ export default async function ContactPage() {
             <ScrollReveal>
               <div className="flex h-full flex-col">
                 <h2 className="text-lg font-semibold">Reach me directly</h2>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mt-2 text-sm">
                   Any channel works. If you have an NDA, send it before sharing
                   project details.
                 </p>
                 {channels.length === 0 ? (
-                  <p className="mt-6 text-sm text-muted-foreground">
+                  <p className="text-muted-foreground mt-6 text-sm">
                     No contact channels configured. Add some in{" "}
-                    <a href="/admin/profile" className="text-accent hover:underline">
+                    <a
+                      href="/admin/profile"
+                      className="text-accent hover:underline"
+                    >
                       Admin → Profile
                     </a>
                     .
@@ -154,7 +168,7 @@ export default async function ContactPage() {
                           href={c.href}
                           target={c.external ? "_blank" : undefined}
                           rel="noopener noreferrer"
-                          className="group flex items-center gap-4 rounded-2xl glass-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-card-hover"
+                          className="glass-card group flex items-center gap-4 rounded-2xl p-4 transition-all hover:-translate-y-0.5 hover:shadow-card-hover"
                         >
                           <span
                             className={`inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-muted ${c.color}`}
@@ -162,7 +176,7 @@ export default async function ContactPage() {
                             <c.icon className="h-5 w-5" aria-hidden="true" />
                           </span>
                           <div className="min-w-0">
-                            <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                            <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.18em]">
                               {c.label}
                             </p>
                             <p className="mt-0.5 truncate text-sm font-medium group-hover:text-accent">
@@ -174,13 +188,14 @@ export default async function ContactPage() {
                     ))}
                   </ul>
                 )}
-                <div className="mt-6 flex flex-wrap gap-4 text-sm text-muted-foreground">
+                <div className="text-muted-foreground mt-6 flex flex-wrap gap-4 text-sm">
                   <p className="inline-flex items-center gap-1.5">
                     <MapPin className="h-4 w-4" aria-hidden="true" /> {location}
                   </p>
                   {showJob && preferredLocations.length > 0 && (
                     <p className="inline-flex items-center gap-1.5">
-                      <Globe className="h-4 w-4" aria-hidden="true" /> Open to {preferredLocations.join(" / ")}
+                      <Globe className="h-4 w-4" aria-hidden="true" /> Open to{" "}
+                      {preferredLocations.join(" / ")}
                     </p>
                   )}
                 </div>

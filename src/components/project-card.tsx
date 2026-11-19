@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { CategoryBadge } from "@/components/badge";
 import { cn } from "@/lib/utils";
@@ -55,7 +56,7 @@ export function ProjectCard({
     <Link
       href={`/projects/${project.slug}`}
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden rounded-2xl glass-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-hover",
+        "glass-card group relative flex h-full flex-col overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-hover",
         accentByCategory[project.category],
         className,
       )}
@@ -63,11 +64,13 @@ export function ProjectCard({
       {/* Cover area */}
       <div className="relative aspect-[16/10] w-full overflow-hidden">
         {project.coverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={project.coverUrl}
             alt={`${project.title} cover`}
-            className="absolute inset-0 h-full w-full object-cover"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            quality={70}
+            className="object-cover"
           />
         ) : (
           <div
@@ -75,7 +78,10 @@ export function ProjectCard({
             aria-hidden="true"
           />
         )}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent"
+          aria-hidden="true"
+        />
       </div>
 
       {/* Body */}
@@ -83,7 +89,7 @@ export function ProjectCard({
         <div className="flex items-center justify-between">
           <CategoryBadge category={project.category} />
           {project.year && (
-            <span className="font-mono text-xs text-muted-foreground">
+            <span className="text-muted-foreground font-mono text-xs">
               {project.year}
             </span>
           )}
@@ -92,7 +98,7 @@ export function ProjectCard({
         <h3 className="mt-4 text-lg font-semibold tracking-tight">
           {project.title}
         </h3>
-        <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
+        <p className="text-muted-foreground mt-2 flex-1 text-sm leading-relaxed">
           {project.excerpt}
         </p>
 
@@ -101,13 +107,13 @@ export function ProjectCard({
             {project.techStack.slice(0, 3).map((t) => (
               <span
                 key={t}
-                className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                className="text-muted-foreground rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium"
               >
                 {t}
               </span>
             ))}
             {project.techStack.length > 3 && (
-              <span className="px-1 text-[11px] text-muted-foreground">
+              <span className="text-muted-foreground px-1 text-[11px]">
                 +{project.techStack.length - 3}
               </span>
             )}
@@ -119,7 +125,8 @@ export function ProjectCard({
             "mt-5 inline-flex items-center gap-1 text-sm font-medium text-accent opacity-0 transition-opacity duration-200 group-hover:opacity-100",
           )}
         >
-          Read case study <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          Read case study{" "}
+          <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
         </span>
       </div>
     </Link>

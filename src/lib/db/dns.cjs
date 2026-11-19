@@ -16,9 +16,9 @@
  * Node built-in from a Next.js project without tripping the
  * `UnhandledSchemeError: Reading from "node:dns"` build failure.
  *
- * Side effect: `configureDns()` is called as soon as this file is
- * required (idempotent via the `configured` guard), so the resolver
- * override is in place before Mongoose's first SRV lookup.
+ * Side effect: `configureDns()` is called once from
+ * `src/lib/db/connect.ts`, immediately before Mongoose's first SRV lookup,
+ * so the resolver override is in place in time.
  */
 
 const FALLBACK_RESOLVERS = ["1.1.1.1", "8.8.8.8"];
@@ -50,6 +50,3 @@ function configureDns() {
 }
 
 module.exports = { configureDns };
-
-// Run on require. Idempotent.
-configureDns();

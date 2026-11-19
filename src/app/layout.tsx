@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/react";
+import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/site-header";
 import { ConditionalSiteFooter } from "@/components/conditional-site-footer";
@@ -11,9 +11,7 @@ import { personJsonLd, websiteJsonLd, combineJsonLd } from "@/lib/jsonld";
 import { absoluteUrl } from "@/lib/utils";
 import { getProfile } from "@/server/queries";
 import { SITE_DEFAULTS } from "@/lib/site-defaults";
-import Script from "next/script";
-import Head from "next/head";
-import '@/styles/globals.css';
+import "@/styles/globals.css";
 
 // Preload fonts with display swap for better performance
 const inter = Inter({
@@ -61,7 +59,7 @@ const DEFAULT_KEYWORDS = [
 const DEFAULT_TWITTER_HANDLE = SITE_DEFAULTS.twitterHandle;
 
 // Enable static generation for better performance
-export const dynamic = 'force-static';
+export const dynamic = "force-static";
 export const revalidate = 86400; // 24 hours
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -76,7 +74,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const title = profile?.siteTitle || DEFAULT_TITLE;
   const description = profile?.siteDescription || DEFAULT_DESCRIPTION;
-  const keywords = profile?.siteKeywords?.length ? profile.siteKeywords : DEFAULT_KEYWORDS;
+  const keywords = profile?.siteKeywords?.length
+    ? profile.siteKeywords
+    : DEFAULT_KEYWORDS;
   const twitterCreator = profile?.twitterHandle || DEFAULT_TWITTER_HANDLE;
   const name = profile?.name || SITE_DEFAULTS.name;
 
@@ -213,20 +213,6 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${jetbrains.variable}`}
     >
-      <Head>
-        {/* Preconnect to critical third-party domains */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin />
-        <link rel="preconnect" href="https://va.vercel-insights.com" />
-
-        {/* Preload critical CSS */}
-        <link rel="preload" href="/_next/static/css/main.css" as="style" />
-
-        {/* DNS prefetch for all external domains */}
-        <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />
-        <link rel="dns-prefetch" href="https://va.vercel-insights.com" />
-      </Head>
-
       <body className="relative min-h-screen bg-background font-sans text-foreground">
         <div className="gradient-mesh" aria-hidden="true" />
 
@@ -242,12 +228,6 @@ export default async function RootLayout({
           >
             Skip to content
           </a>
-
-          {/* Analytics script - moved outside Head */}
-          <Script
-            src="/_next/static/chunks/main.js"
-            strategy="afterInteractive"
-          />
 
           <SiteHeader name={footerProfile?.name} />
 

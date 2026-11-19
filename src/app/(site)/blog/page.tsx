@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Calendar, Eye } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ScrollReveal } from "@/components/scroll-reveal";
@@ -26,7 +27,9 @@ export const metadata: Metadata = {
       "Notes on BACnet, Niagara 4 commissioning, building automation, IoT, and AI in engineering.",
     url: absoluteUrl("/blog"),
     type: "website",
-    images: [{ url: ogImage, width: 1200, height: 630, alt: "Blog — Md Kamal Hosen" }],
+    images: [
+      { url: ogImage, width: 1200, height: 630, alt: "Blog — Md Kamal Hosen" },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -41,9 +44,7 @@ async function loadPosts() {
     const rows = await getPublishedPosts();
     // One aggregation round-trip for the whole listing — keeps
     // render time flat regardless of post count.
-    const viewCounts = await getBatchPostViewCounts(
-      rows.map((r) => r.id),
-    );
+    const viewCounts = await getBatchPostViewCounts(rows.map((r) => r.id));
     return rows.map((p) => ({
       id: p.id,
       slug: p.slug,
@@ -99,15 +100,17 @@ export default async function BlogPage() {
                   <ScrollReveal key={p.slug} delay={i * 70}>
                     <Link
                       href={`/blog/${p.slug}`}
-                      className="group flex h-full flex-col overflow-hidden rounded-2xl glass-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-hover"
+                      className="glass-card group flex h-full flex-col overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-hover"
                     >
                       <div className="relative aspect-[16/9] w-full overflow-hidden">
                         {p.coverUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          <Image
                             src={p.coverUrl}
                             alt={`${p.title} cover`}
-                            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            quality={70}
+                            className="object-cover transition-transform duration-500 group-hover:scale-105"
                           />
                         ) : (
                           <div
@@ -131,7 +134,7 @@ export default async function BlogPage() {
                             <PostDates
                               publishedAt={p.publishedAt}
                               updatedAt={p.updatedAt}
-                              className="text-[11px] text-muted-foreground"
+                              className="text-muted-foreground text-[11px]"
                             />
                           )}
                         </div>
@@ -139,11 +142,11 @@ export default async function BlogPage() {
                           {p.title}
                         </h2>
                         {p.excerpt && (
-                          <p className="mt-2 flex-1 text-sm text-muted-foreground">
+                          <p className="text-muted-foreground mt-2 flex-1 text-sm">
                             {p.excerpt}
                           </p>
                         )}
-                        <p className="mt-5 inline-flex items-center gap-3 font-mono text-xs text-muted-foreground">
+                        <p className="text-muted-foreground mt-5 inline-flex items-center gap-3 font-mono text-xs">
                           <span className="inline-flex items-center gap-1">
                             <span className="opacity-70">·</span>
                             {p.readingMinutes} min read
@@ -163,7 +166,7 @@ export default async function BlogPage() {
                   </ScrollReveal>
                 ))}
               </div>
-              <p className="mt-16 text-center text-xs text-muted-foreground">
+              <p className="text-muted-foreground mt-16 text-center text-xs">
                 More posts land as I publish them. Subscribe via{" "}
                 <Link
                   href="/contact"

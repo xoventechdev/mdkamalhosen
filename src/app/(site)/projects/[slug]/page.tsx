@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { breadcrumbJsonLd, creativeWorkJsonLd } from "@/lib/jsonld";
 
 // Performance: Force static generation for better caching
-export const dynamic = 'force-static';
+export const dynamic = "force-static";
 export const revalidate = 86400; // 24 hours cache
 
 interface PageProps {
@@ -30,7 +30,9 @@ interface PageProps {
 // Performance: Generate static params at build time
 export async function generateStaticParams() {
   try {
-    const projects = (await getPublishedProjects()) as unknown as Array<{ slug: string }>;
+    const projects = (await getPublishedProjects()) as unknown as Array<{
+      slug: string;
+    }>;
     return projects.map((p) => ({ slug: p.slug }));
   } catch {
     return [];
@@ -38,13 +40,15 @@ export async function generateStaticParams() {
 }
 
 // Performance: Cache metadata generation
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { slug } = await params;
   let title = slug;
   let description = "Case study by Md Kamal Hosen.";
   let project: { title: string; excerpt?: string | null } | null = null;
   try {
-    project = ((await getProjectBySlug(slug)) as unknown) as {
+    project = (await getProjectBySlug(slug)) as unknown as {
       title: string;
       excerpt?: string | null;
     } | null;
@@ -58,7 +62,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const pageUrl = absoluteUrl(`/projects/${slug}`);
   const ogImage = absoluteUrl(
     `/api/og?type=project&title=${encodeURIComponent(title)}${
-      description ? `&subtitle=${encodeURIComponent(description.slice(0, 140))}` : ""
+      description
+        ? `&subtitle=${encodeURIComponent(description.slice(0, 140))}`
+        : ""
     }`,
   );
   return {
@@ -125,7 +131,11 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     outcome?: string | null;
     lessons?: string | null;
     galleryImages?: string[];
-    links?: { live?: string | null; github?: string | null; pdf?: string | null } | null;
+    links?: {
+      live?: string | null;
+      github?: string | null;
+      pdf?: string | null;
+    } | null;
   } | null;
 
   if (!parsedProject || parsedProject.status !== "published") notFound();
@@ -156,22 +166,33 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     <>
       {/* JSON-LD: CreativeWork + BreadcrumbList */}
       <JsonLd
-        data={[creativeWorkJsonLd({
-          slug: parsedProject.slug,
-          title: parsedProject.title,
-          excerpt: parsedProject.excerpt,
-          coverUrl: parsedProject.coverUrl,
-          techStack: parsedProject.techStack,
-          category: parsedProject.category,
-          year: parsedProject.year,
-          createdAt: null,
-          updatedAt: null,
-          type: (parsedProject.category as "bms" | "software" | "iot" | "android") ?? "general",
-        }), breadcrumbJsonLd([
-          { name: "Home", href: "/" },
-          { name: "Projects", href: "/projects" },
-          { name: parsedProject.title, href: `/projects/${parsedProject.slug}` },
-        ])]}
+        data={[
+          creativeWorkJsonLd({
+            slug: parsedProject.slug,
+            title: parsedProject.title,
+            excerpt: parsedProject.excerpt,
+            coverUrl: parsedProject.coverUrl,
+            techStack: parsedProject.techStack,
+            category: parsedProject.category,
+            year: parsedProject.year,
+            createdAt: null,
+            updatedAt: null,
+            type:
+              (parsedProject.category as
+                | "bms"
+                | "software"
+                | "iot"
+                | "android") ?? "general",
+          }),
+          breadcrumbJsonLd([
+            { name: "Home", href: "/" },
+            { name: "Projects", href: "/projects" },
+            {
+              name: parsedProject.title,
+              href: `/projects/${parsedProject.slug}`,
+            },
+          ]),
+        ]}
       />
 
       {/* Cover band — shows the uploaded `coverUrl` as a full-bleed
@@ -186,8 +207,8 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             width={1920}
             height={1080}
             className="aspect-[21/9] w-full object-cover md:aspect-[21/7]"
-            priority={true}
-            quality={85}
+            priority
+            quality={70}
             sizes="100vw"
           />
         ) : (
@@ -222,12 +243,16 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
           {/* Meta row + actions */}
           <div className="mb-12 flex flex-wrap items-center gap-3">
-            <CategoryBadge category={parsedProject.category as "bms" | "software" | "iot" | "android"} />
-            <span className="font-mono text-sm text-muted-foreground">
+            <CategoryBadge
+              category={
+                parsedProject.category as "bms" | "software" | "iot" | "android"
+              }
+            />
+            <span className="text-muted-foreground font-mono text-sm">
               {parsedProject.year}
             </span>
             {parsedProject.clientType && (
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground text-sm">
                 · {parsedProject.clientType}
               </span>
             )}
@@ -250,7 +275,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   href={links.github}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-10 items-center gap-2 rounded-lg glass-chip px-4 text-sm font-medium text-foreground hover:bg-card"
+                  className="glass-chip inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-medium text-foreground hover:bg-card"
                 >
                   <Github className="h-4 w-4" aria-hidden="true" /> Source
                 </a>
@@ -260,7 +285,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   href={links.pdf}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-10 items-center gap-2 rounded-lg glass-chip px-4 text-sm font-medium text-foreground hover:bg-card"
+                  className="glass-chip inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-medium text-foreground hover:bg-card"
                 >
                   <ExternalLink className="h-4 w-4" aria-hidden="true" /> PDF
                 </a>
@@ -274,30 +299,53 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               {sections.map((s, i) => {
                 let content: string | string[] | null = null;
                 if (s.key === "tech") {
-                  content = parsedProject.techStack?.length ? parsedProject.techStack : null;
+                  content = parsedProject.techStack?.length
+                    ? parsedProject.techStack
+                    : null;
                 } else if (s.key === "role") {
-                  content = parsedProject.role ? paragraphs(parsedProject.role) : null;
+                  content = parsedProject.role
+                    ? paragraphs(parsedProject.role)
+                    : null;
                 } else if (s.key === "problem") {
-                  content = parsedProject.problem ? paragraphs(parsedProject.problem) : null;
+                  content = parsedProject.problem
+                    ? paragraphs(parsedProject.problem)
+                    : null;
                 } else if (s.key === "challenges") {
-                  content = parsedProject.challenges ? paragraphs(parsedProject.challenges) : null;
+                  content = parsedProject.challenges
+                    ? paragraphs(parsedProject.challenges)
+                    : null;
                 } else if (s.key === "solution") {
-                  content = parsedProject.solution ? paragraphs(parsedProject.solution) : null;
+                  content = parsedProject.solution
+                    ? paragraphs(parsedProject.solution)
+                    : null;
                 } else if (s.key === "outcome") {
-                  content = parsedProject.outcome ? paragraphs(parsedProject.outcome) : null;
+                  content = parsedProject.outcome
+                    ? paragraphs(parsedProject.outcome)
+                    : null;
                 } else if (s.key === "lessons") {
-                  content = parsedProject.lessons ? paragraphs(parsedProject.lessons) : null;
+                  content = parsedProject.lessons
+                    ? paragraphs(parsedProject.lessons)
+                    : null;
                 }
-                if (!content || (Array.isArray(content) && content.length === 0)) return null;
+                if (
+                  !content ||
+                  (Array.isArray(content) && content.length === 0)
+                )
+                  return null;
                 return (
                   <ScrollReveal as="article" key={s.key} delay={i * 60}>
                     <div className="glass-card relative overflow-hidden p-6 sm:p-7">
                       <div className="flex items-center gap-3">
-                        <span className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                        <span className="text-muted-foreground font-mono text-xs uppercase tracking-[0.18em]">
                           {String(i + 1).padStart(2, "0")}
                         </span>
                         <span className="h-px flex-1 bg-border" />
-                        <h2 className={cn("text-sm font-semibold uppercase tracking-wider", s.color)}>
+                        <h2
+                          className={cn(
+                            "text-sm font-semibold uppercase tracking-wider",
+                            s.color,
+                          )}
+                        >
                           {s.label}
                         </h2>
                       </div>
@@ -307,20 +355,20 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                           {content.map((t) => (
                             <span
                               key={t}
-                              className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"
+                              className="text-muted-foreground rounded-md bg-muted px-2 py-1 text-xs font-medium"
                             >
                               {t}
                             </span>
                           ))}
                         </div>
                       ) : Array.isArray(content) ? (
-                        <div className="mt-4 space-y-3 text-base leading-relaxed text-muted-foreground">
+                        <div className="text-muted-foreground mt-4 space-y-3 text-base leading-relaxed">
                           {content.map((p, j) => (
                             <p key={j}>{p}</p>
                           ))}
                         </div>
                       ) : (
-                        <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+                        <p className="text-muted-foreground mt-4 text-base leading-relaxed">
                           {content}
                         </p>
                       )}
@@ -333,12 +381,12 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             {/* Side column — quick facts */}
             <aside className="lg:sticky lg:top-24 lg:self-start">
               <div className="glass-card p-6">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.18em]">
                   Quick facts
                 </p>
                 <dl className="mt-5 space-y-4 text-sm">
                   <div>
-                    <dt className="text-xs uppercase tracking-wider text-muted-foreground">
+                    <dt className="text-muted-foreground text-xs uppercase tracking-wider">
                       Category
                     </dt>
                     <dd className="mt-1 font-medium capitalize">
@@ -346,21 +394,23 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs uppercase tracking-wider text-muted-foreground">
+                    <dt className="text-muted-foreground text-xs uppercase tracking-wider">
                       Year
                     </dt>
                     <dd className="mt-1 font-medium">{parsedProject.year}</dd>
                   </div>
                   {parsedProject.clientType && (
                     <div>
-                      <dt className="text-xs uppercase tracking-wider text-muted-foreground">
+                      <dt className="text-muted-foreground text-xs uppercase tracking-wider">
                         Client type
                       </dt>
-                      <dd className="mt-1 font-medium">{parsedProject.clientType}</dd>
+                      <dd className="mt-1 font-medium">
+                        {parsedProject.clientType}
+                      </dd>
                     </div>
                   )}
                   <div>
-                    <dt className="text-xs uppercase tracking-wider text-muted-foreground">
+                    <dt className="text-muted-foreground text-xs uppercase tracking-wider">
                       Stack
                     </dt>
                     <dd className="mt-2 flex flex-wrap gap-1.5">
@@ -385,11 +435,14 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               {prev ? (
                 <Link
                   href={`/projects/${prev.slug}`}
-                  className="group flex items-center gap-3 rounded-xl glass-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-card-hover"
+                  className="glass-card group flex items-center gap-3 rounded-xl p-4 transition-all hover:-translate-y-0.5 hover:shadow-card-hover"
                 >
-                  <ArrowLeft className="h-4 w-4 text-muted-foreground group-hover:text-accent" aria-hidden="true" />
+                  <ArrowLeft
+                    className="text-muted-foreground h-4 w-4 group-hover:text-accent"
+                    aria-hidden="true"
+                  />
                   <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground">Previous</p>
+                    <p className="text-muted-foreground text-xs">Previous</p>
                     <p className="mt-0.5 truncate text-sm font-medium">
                       {prev.title}
                     </p>
@@ -401,15 +454,18 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               {next ? (
                 <Link
                   href={`/projects/${next.slug}`}
-                  className="group flex items-center justify-end gap-3 rounded-xl glass-card p-4 text-right transition-all hover:-translate-y-0.5 hover:shadow-card-hover"
+                  className="glass-card group flex items-center justify-end gap-3 rounded-xl p-4 text-right transition-all hover:-translate-y-0.5 hover:shadow-card-hover"
                 >
                   <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground">Next</p>
+                    <p className="text-muted-foreground text-xs">Next</p>
                     <p className="mt-0.5 truncate text-sm font-medium">
                       {next.title}
                     </p>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-accent" aria-hidden="true" />
+                  <ArrowRight
+                    className="text-muted-foreground h-4 w-4 group-hover:text-accent"
+                    aria-hidden="true"
+                  />
                 </Link>
               ) : (
                 <span />

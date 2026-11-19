@@ -1,23 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { X, Expand, Eye, ChevronLeft, ChevronRight } from "lucide-react";
-
-// Lazy load icons for better performance
-const LazyX = lazy(() => import("lucide-react").then((m) => ({ default: m.X })));
-const LazyChevronLeft = lazy(() => import("lucide-react").then((m) => ({ default: m.ChevronLeft })));
-const LazyChevronRight = lazy(() => import("lucide-react").then((m) => ({ default: m.ChevronRight })));
-const LazyEye = lazy(() => import("lucide-react").then((m) => ({ default: m.Eye })));
-const LazyExpand = lazy(() => import("lucide-react").then((m) => ({ default: m.Expand })));
 
 interface ImageGalleryProps {
   images: string[];
   title: string;
 }
-
-// Placeholder component for lazy loading
-const IconPlaceholder = () => <div className="w-6 h-6 bg-gray-500 rounded-full animate-pulse" />;
 
 export function ImageGallery({ images, title }: ImageGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -35,27 +25,37 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
     document.body.style.overflow = "auto";
   }, []);
 
-  const navigateImage = useCallback((direction: "next" | "prev") => {
-    if (selectedIndex === null) return;
+  const navigateImage = useCallback(
+    (direction: "next" | "prev") => {
+      if (selectedIndex === null) return;
 
-    if (direction === "next") {
-      setSelectedIndex((prev) => prev !== null ? (prev + 1) % images.length : 0);
-    } else {
-      setSelectedIndex((prev) => prev !== null ? (prev - 1 + images.length) % images.length : 0);
-    }
-  }, [selectedIndex, images.length]);
+      if (direction === "next") {
+        setSelectedIndex((prev) =>
+          prev !== null ? (prev + 1) % images.length : 0,
+        );
+      } else {
+        setSelectedIndex((prev) =>
+          prev !== null ? (prev - 1 + images.length) % images.length : 0,
+        );
+      }
+    },
+    [selectedIndex, images.length],
+  );
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (!isModalOpen) return;
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!isModalOpen) return;
 
-    if (e.key === "Escape") {
-      closeModal();
-    } else if (e.key === "ArrowRight") {
-      navigateImage("next");
-    } else if (e.key === "ArrowLeft") {
-      navigateImage("prev");
-    }
-  }, [isModalOpen, closeModal, navigateImage]);
+      if (e.key === "Escape") {
+        closeModal();
+      } else if (e.key === "ArrowRight") {
+        navigateImage("next");
+      } else if (e.key === "ArrowLeft") {
+        navigateImage("prev");
+      }
+    },
+    [isModalOpen, closeModal, navigateImage],
+  );
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -69,10 +69,12 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
       {/* Gallery Grid */}
       <div className="glass-card p-6 sm:p-7">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-muted-foreground text-sm font-semibold uppercase tracking-wider">
             Gallery
           </p>
-          <span className="text-xs text-muted-foreground">{images.length} images</span>
+          <span className="text-muted-foreground text-xs">
+            {images.length} images
+          </span>
         </div>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {images.map((url, i) => (
@@ -86,25 +88,21 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
                 alt={`${title} screenshot ${i + 1}`}
                 width={800}
                 height={600}
-                className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-                priority={i < 2} // Only priority load first 2 images
-                quality={75} // Reduced from 80 to save more
+                className="h-48 w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                quality={70}
                 sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 placeholder="blur"
                 blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
                 loading="lazy"
-                decoder="async"
               />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+              <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/20" />
               <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                 <span className="text-xs font-medium text-white/90">
                   View Image
                 </span>
                 <div className="flex items-center gap-1">
-                  <Suspense fallback={<IconPlaceholder />}>
-                    <LazyEye className="h-4 w-4 text-white/80" />
-                    <LazyExpand className="h-4 w-4 text-white/80" />
-                  </Suspense>
+                  <Eye className="h-4 w-4 text-white/80" />
+                  <Expand className="h-4 w-4 text-white/80" />
                 </div>
               </div>
             </div>
@@ -124,24 +122,22 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
 
           {/* Modal Content - absolutely centered */}
           <div
-            className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none"
+            className="pointer-events-none fixed inset-0 z-[101] flex items-center justify-center p-4"
             role="dialog"
             aria-modal="true"
             aria-label="Image viewer"
           >
             <div
-              className="relative max-w-[90vw] max-h-[90vh] w-full h-full flex flex-col items-center justify-center pointer-events-auto"
+              className="pointer-events-auto relative flex h-full max-h-[90vh] w-full max-w-[90vw] flex-col items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close button - top right */}
               <button
                 onClick={closeModal}
-                className="absolute top-0 right-0 -mt-12 -mr-4 z-20 rounded-full bg-black/50 p-2 text-white/90 hover:bg-black/70 hover:text-white transition-all duration-200"
+                className="absolute right-0 top-0 z-20 -mr-4 -mt-12 rounded-full bg-black/50 p-2 text-white/90 transition-all duration-200 hover:bg-black/70 hover:text-white"
                 aria-label="Close image viewer"
               >
-                <Suspense fallback={<IconPlaceholder />}>
-                  <LazyX className="h-6 w-6" />
-                </Suspense>
+                <X className="h-6 w-6" />
               </button>
 
               {/* Previous button - left side */}
@@ -150,13 +146,11 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
                   e.stopPropagation();
                   navigateImage("prev");
                 }}
-                className="absolute left-0 top-1/2 -translate-y-1/2 -ml-14 z-20 rounded-full bg-black/50 p-2 text-white/90 hover:bg-black/70 hover:text-white transition-all duration-200 disabled:opacity-50"
+                className="absolute left-0 top-1/2 z-20 -ml-14 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white/90 transition-all duration-200 hover:bg-black/70 hover:text-white disabled:opacity-50"
                 aria-label="Previous image"
                 disabled={images.length <= 1}
               >
-                <Suspense fallback={<IconPlaceholder />}>
-                  <LazyChevronLeft className="h-6 w-6" />
-                </Suspense>
+                <ChevronLeft className="h-6 w-6" />
               </button>
 
               {/* Next button - right side */}
@@ -165,27 +159,25 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
                   e.stopPropagation();
                   navigateImage("next");
                 }}
-                className="absolute right-0 top-1/2 -translate-y-1/2 -mr-14 z-20 rounded-full bg-black/50 p-2 text-white/90 hover:bg-black/70 hover:text-white transition-all duration-200 disabled:opacity-50"
+                className="absolute right-0 top-1/2 z-20 -mr-14 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white/90 transition-all duration-200 hover:bg-black/70 hover:text-white disabled:opacity-50"
                 aria-label="Next image"
                 disabled={images.length <= 1}
               >
-                <Suspense fallback={<IconPlaceholder />}>
-                  <LazyChevronRight className="h-6 w-6" />
-                </Suspense>
+                <ChevronRight className="h-6 w-6" />
               </button>
 
               {/* Image Container - centered */}
-              <div className="flex flex-col items-center justify-center w-full h-full">
+              <div className="flex h-full w-full flex-col items-center justify-center">
                 <Image
-                  src={images[selectedIndex]}
+                  src={images[selectedIndex]!}
                   alt={`Full view - ${title} screenshot ${selectedIndex + 1}`}
                   width={1200}
                   height={800}
-                  className="max-w-[80vw] max-h-[70vh] object-contain rounded-lg"
+                  className="max-h-[70vh] max-w-[80vw] rounded-lg object-contain"
                   priority={true}
-                  quality={85}
+                  quality={80}
                   sizes="80vw"
-                  style={{ maxWidth: '80vw', maxHeight: '70vh' }}
+                  style={{ maxWidth: "80vw", maxHeight: "70vh" }}
                   placeholder="blur"
                   blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
                 />
@@ -199,7 +191,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
               </div>
 
               {/* Instructions */}
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 -mb-10 text-center">
+              <div className="absolute bottom-0 left-1/2 -mb-10 -translate-x-1/2 text-center">
                 <p className="text-xs text-white/50">
                   Press ESC to close | Arrow keys to navigate
                 </p>

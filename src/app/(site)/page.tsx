@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -41,9 +42,19 @@ export const revalidate = 60;
 // content change, so they stay hardcoded.
 const workflow = [
   { step: "01", label: "Planning", icon: Sparkles, color: "text-cat-bms" },
-  { step: "02", label: "Documentation", icon: Code2, color: "text-cat-software" },
+  {
+    step: "02",
+    label: "Documentation",
+    icon: Code2,
+    color: "text-cat-software",
+  },
   { step: "03", label: "Coding", icon: Cpu, color: "text-cat-iot" },
-  { step: "04", label: "Troubleshooting", icon: Building2, color: "text-cat-android" },
+  {
+    step: "04",
+    label: "Troubleshooting",
+    icon: Building2,
+    color: "text-cat-android",
+  },
   { step: "05", label: "Research", icon: Smartphone, color: "text-accent" },
 ];
 
@@ -83,179 +94,182 @@ function Hero({
 }) {
   return (
     <section className="relative overflow-hidden">
-      <div className="container relative pt-16 pb-24 md:pt-24 md:pb-32 lg:pt-32 lg:pb-40">
+      <div className="container relative pb-24 pt-16 md:pb-32 md:pt-24 lg:pb-40 lg:pt-32">
         <div className="grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-7">
             {showJob && preferredLocations.length > 0 && (
-              <ScrollReveal>
-                <span className="inline-flex items-center gap-2 rounded-full glass-chip px-3 py-1.5 text-xs font-medium text-foreground/90">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-emerald-500/80" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                  </span>
-                  Open to {preferredLocations.join(" / ")}
+              <span className="glass-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-foreground/90">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-emerald-500/80" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                 </span>
-              </ScrollReveal>
+                Open to {preferredLocations.join(" / ")}
+              </span>
             )}
 
-            <ScrollReveal delay={80}>
-              <p className="mt-6 font-mono text-sm text-accent">
-                {`// ${profileName}`}
-              </p>
-            </ScrollReveal>
+            <p className="mt-6 font-mono text-sm text-accent">
+              {`// ${profileName}`}
+            </p>
 
-            <ScrollReveal delay={120}>
-              <h1 className="mt-3 max-w-4xl text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl lg:text-[4.5rem]">
-                {profileRole}{" "}
-                <span className="text-gradient">
-                  commissioning HVAC plants
-                </span>{" "}
-                and shipping the software that runs them.
-              </h1>
-            </ScrollReveal>
+            <h1 className="mt-3 max-w-4xl text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl lg:text-[4.5rem]">
+              {profileRole}{" "}
+              <span className="text-gradient">commissioning HVAC plants</span>{" "}
+              and shipping the software that runs them.
+            </h1>
 
-            <ScrollReveal delay={200}>
-              <p className="mt-6 max-w-2xl text-pretty text-base text-muted-foreground sm:text-lg">
-                5+ years across Bangladesh, Qatar, and Saudi Arabia on Honeywell
-                Alerton and Tridium Niagara 4 platforms. I bridge IT and OT in
-                modern smart buildings — and build the tools that make them
-                smarter.
-              </p>
-            </ScrollReveal>
+            <p className="text-muted-foreground mt-6 max-w-2xl text-pretty text-base sm:text-lg">
+              5+ years across Bangladesh, Qatar, and Saudi Arabia on Honeywell
+              Alerton and Tridium Niagara 4 platforms. I bridge IT and OT in
+              modern smart buildings — and build the tools that make them
+              smarter.
+            </p>
 
-            <ScrollReveal delay={280}>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link
-                  href="/projects"
-                  className="group inline-flex h-11 items-center gap-2 rounded-lg bg-gradient-to-br from-violet to-accent px-6 text-sm font-medium text-white shadow-glow transition-all"
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link
+                href="/projects"
+                className="group inline-flex h-11 items-center gap-2 rounded-lg bg-gradient-to-br from-violet to-accent px-6 text-sm font-medium text-white shadow-glow transition-all"
+              >
+                View projects
+                <ArrowRight
+                  className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                />
+              </Link>
+              <Link
+                href="/cv"
+                className="glass-chip inline-flex h-11 items-center gap-2 rounded-lg px-6 text-sm font-medium backdrop-blur-md transition-all hover:border-accent/40 hover:bg-card"
+              >
+                <Download className="h-4 w-4" aria-hidden="true" /> Download CV
+              </Link>
+              {linkedinUrl && (
+                <a
+                  href={linkedinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground inline-flex h-11 items-center gap-2 px-3 text-sm font-medium transition-colors hover:text-foreground"
                 >
-                  View projects
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-                </Link>
-                <Link
-                  href="/cv"
-                  className="inline-flex h-11 items-center gap-2 rounded-lg glass-chip px-6 text-sm font-medium backdrop-blur-md transition-all hover:border-accent/40 hover:bg-card"
-                >
-                  <Download className="h-4 w-4" aria-hidden="true" /> Download CV
-                </Link>
-                {linkedinUrl && (
-                  <a
-                    href={linkedinUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex h-11 items-center gap-2 px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    LinkedIn <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-                  </a>
-                )}
-              </div>
-            </ScrollReveal>
+                  LinkedIn{" "}
+                  <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                </a>
+              )}
+            </div>
           </div>
 
           {/* Right column — hero glass stat card */}
           <div className="lg:col-span-5">
-            <ScrollReveal delay={160}>
-              <div className="glass-card relative overflow-hidden p-7">
-                <div
-                  className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-gradient-to-br from-violet/30 to-accent/20 blur-3xl"
-                  aria-hidden="true"
-                />
-                <div
-                  className="absolute -left-12 -bottom-12 h-40 w-40 rounded-full bg-gradient-to-br from-cat-iot/20 to-cat-software/20 blur-3xl"
-                  aria-hidden="true"
-                />
+            <div className="glass-card relative overflow-hidden p-7">
+              <div
+                className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-gradient-to-br from-violet/30 to-accent/20 blur-3xl"
+                aria-hidden="true"
+              />
+              <div
+                className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-gradient-to-br from-cat-iot/20 to-cat-software/20 blur-3xl"
+                aria-hidden="true"
+              />
 
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="inline-flex items-center gap-1.5 rounded-full glass-chip px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/80">
-                      <span className="h-1.5 w-1.5 rounded-full bg-accent" /> Currently
-                    </p>
-                    <h2 className="mt-3 text-2xl font-semibold tracking-tight">
-                      {currentJob?.role ?? profileRole}
-                    </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {currentJob
-                        ? `${currentJob.company} · ${currentJob.place}`
-                        : profileLocation}
-                    </p>
-                  </div>
-                  {avatarUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={avatarUrl}
-                      alt={`${profileName} portrait`}
-                      width={72}
-                      height={72}
-                      loading="eager"
-                      className="h-[72px] w-[72px] flex-shrink-0 rounded-full object-cover ring-2 ring-accent/40 ring-offset-2 ring-offset-card"
-                    />
-                  )}
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="glass-chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/80">
+                    <span className="h-1.5 w-1.5 rounded-full bg-accent" />{" "}
+                    Currently
+                  </p>
+                  <h2 className="mt-3 text-2xl font-semibold tracking-tight">
+                    {currentJob?.role ?? profileRole}
+                  </h2>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    {currentJob
+                      ? `${currentJob.company} · ${currentJob.place}`
+                      : profileLocation}
+                  </p>
                 </div>
+                {avatarUrl && (
+                  <Image
+                    src={avatarUrl}
+                    alt={`${profileName} portrait`}
+                    width={72}
+                    height={72}
+                    sizes="72px"
+                    quality={80}
+                    priority
+                    className="h-[72px] w-[72px] flex-shrink-0 rounded-full object-cover ring-2 ring-accent/40 ring-offset-2 ring-offset-card"
+                  />
+                )}
+              </div>
 
-                {currentJob && (
-                  <dl className="mt-6 grid grid-cols-3 gap-3">
+              {currentJob && (
+                <dl className="mt-6 grid grid-cols-3 gap-3">
+                  <div className="rounded-xl border border-border bg-card/60 p-3">
+                    <dt className="text-muted-foreground font-mono text-[10px] uppercase tracking-wider">
+                      Started
+                    </dt>
+                    <dd className="mt-1 text-sm font-semibold">
+                      {currentJob.startedLabel}
+                    </dd>
+                  </div>
+                  {currentJob.project && (
                     <div className="rounded-xl border border-border bg-card/60 p-3">
-                      <dt className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Started
+                      <dt className="text-muted-foreground font-mono text-[10px] uppercase tracking-wider">
+                        Project
                       </dt>
                       <dd className="mt-1 text-sm font-semibold">
-                        {currentJob.startedLabel}
+                        {currentJob.project}
                       </dd>
                     </div>
-                    {currentJob.project && (
-                      <div className="rounded-xl border border-border bg-card/60 p-3">
-                        <dt className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                          Project
-                        </dt>
-                        <dd className="mt-1 text-sm font-semibold">
-                          {currentJob.project}
-                        </dd>
-                      </div>
-                    )}
-                    {currentJob.stackHead && (
-                      <div className="rounded-xl border border-border bg-card/60 p-3">
-                        <dt className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                          Stack
-                        </dt>
-                        <dd className="mt-1 text-sm font-semibold">
-                          {currentJob.stackHead}
-                        </dd>
-                      </div>
-                    )}
-                  </dl>
-                )}
+                  )}
+                  {currentJob.stackHead && (
+                    <div className="rounded-xl border border-border bg-card/60 p-3">
+                      <dt className="text-muted-foreground font-mono text-[10px] uppercase tracking-wider">
+                        Stack
+                      </dt>
+                      <dd className="mt-1 text-sm font-semibold">
+                        {currentJob.stackHead}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              )}
 
-                {currentJob && currentJob.bulletsHead.length > 0 && (
-                  <div className="mt-6 space-y-3 border-t border-border pt-5">
-                    {currentJob.bulletsHead.slice(0, 2).map((b, i) => (
-                      <div key={i} className="flex items-center gap-3 text-sm">
-                        {i === 0 ? (
-                          <Briefcase className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                        ) : (
-                          <Wrench className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                        )}
-                        <span>{b}</span>
-                      </div>
-                    ))}
-                    {showJob && preferredLocations.length > 0 && (
-                      <div className="flex items-center gap-3 text-sm">
-                        <MapPin className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                        <span>
-                          {profileLocation} · open to {preferredLocations.join(" / ")}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
+              {currentJob && currentJob.bulletsHead.length > 0 && (
+                <div className="mt-6 space-y-3 border-t border-border pt-5">
+                  {currentJob.bulletsHead.slice(0, 2).map((b, i) => (
+                    <div key={i} className="flex items-center gap-3 text-sm">
+                      {i === 0 ? (
+                        <Briefcase
+                          className="text-muted-foreground h-4 w-4"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <Wrench
+                          className="text-muted-foreground h-4 w-4"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span>{b}</span>
+                    </div>
+                  ))}
+                  {showJob && preferredLocations.length > 0 && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <MapPin
+                        className="text-muted-foreground h-4 w-4"
+                        aria-hidden="true"
+                      />
+                      <span>
+                        {profileLocation} · open to{" "}
+                        {preferredLocations.join(" / ")}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
 
-                <Link
-                  href="/experience"
-                  className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-accent transition-colors hover:text-accent-soft"
-                >
-                  Full career timeline <ChevronRight className="h-4 w-4" aria-hidden="true" />
-                </Link>
-              </div>
-            </ScrollReveal>
+              <Link
+                href="/experience"
+                className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-accent transition-colors hover:text-accent-soft"
+              >
+                Full career timeline{" "}
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -267,7 +281,7 @@ function MarqueeBar({ items }: { items: string[] }) {
   return (
     <section className="relative border-y border-border bg-card/30 py-4 backdrop-blur-sm">
       <div className="overflow-hidden">
-        <div className="marquee-track flex w-max items-center gap-12 px-6 text-sm text-muted-foreground">
+        <div className="marquee-track text-muted-foreground flex w-max items-center gap-12 px-6 text-sm">
           {[...items, ...items].map((item, i) => (
             <span key={i} className="flex items-center gap-2 whitespace-nowrap">
               <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" />
@@ -315,7 +329,7 @@ function Bento({
           {/* Large BMS card */}
           <ScrollReveal
             as="article"
-            className="group relative overflow-hidden rounded-2xl glass-card p-7 transition-all hover:-translate-y-1 hover:shadow-card-hover lg:col-span-2"
+            className="glass-card group relative overflow-hidden rounded-2xl p-7 transition-all hover:-translate-y-1 hover:shadow-card-hover lg:col-span-2"
           >
             <div
               className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br from-cat-bms/30 to-transparent opacity-60 blur-2xl transition-opacity duration-500 group-hover:opacity-100"
@@ -329,7 +343,7 @@ function Bento({
                 Building automation
               </h3>
             </div>
-            <p className="relative mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            <p className="text-muted-foreground relative mt-4 max-w-2xl text-sm leading-relaxed">
               Honeywell Alerton · Tridium Niagara 4 · BACnet IP/MSTP · Modbus
               RTU/TCP · M-Bus · DDC controllers · HVAC control logic ·
               commissioning · graphics.
@@ -339,7 +353,7 @@ function Bento({
                 {bmsTechTags.map((t) => (
                   <span
                     key={t}
-                    className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                    className="text-muted-foreground rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium"
                   >
                     {t}
                   </span>
@@ -352,7 +366,7 @@ function Bento({
           <ScrollReveal
             as="article"
             delay={100}
-            className="group relative overflow-hidden rounded-2xl glass-card p-7 transition-all hover:-translate-y-1 hover:shadow-card-hover"
+            className="glass-card group relative overflow-hidden rounded-2xl p-7 transition-all hover:-translate-y-1 hover:shadow-card-hover"
           >
             <div
               className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br from-cat-software/30 to-transparent opacity-60 blur-2xl transition-opacity duration-500 group-hover:opacity-100"
@@ -366,7 +380,7 @@ function Bento({
                 Software + IoT
               </h3>
             </div>
-            <p className="relative mt-4 text-sm leading-relaxed text-muted-foreground">
+            <p className="text-muted-foreground relative mt-4 text-sm leading-relaxed">
               React · Next.js · Node.js · Python · Prisma · Supabase · MQTT ·
               ESP8266 · Android apps (100K+ downloads).
             </p>
@@ -375,7 +389,7 @@ function Bento({
                 {softwareTags.map((t) => (
                   <span
                     key={t}
-                    className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                    className="text-muted-foreground rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium"
                   >
                     {t}
                   </span>
@@ -404,11 +418,14 @@ function Workflow() {
               as="article"
               key={w.label}
               delay={i * 80}
-              className="group relative overflow-hidden rounded-2xl glass-card p-5 transition-all hover:-translate-y-1 hover:shadow-card-hover"
+              className="glass-card group relative overflow-hidden rounded-2xl p-5 transition-all hover:-translate-y-1 hover:shadow-card-hover"
             >
               <div className="flex items-center justify-between">
                 <span className={`font-mono text-xs ${w.color}`}>{w.step}</span>
-                <w.icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <w.icon
+                  className="text-muted-foreground h-4 w-4"
+                  aria-hidden="true"
+                />
               </div>
               <p className="mt-3 text-sm font-medium">{w.label}</p>
               <span
@@ -430,8 +447,11 @@ function CTA({ showJob }: { showJob: boolean }) {
         {showJob ? (
           <>
             <ScrollReveal>
-              <span className="inline-flex items-center gap-2 rounded-full glass-chip px-3 py-1.5 text-xs font-medium text-foreground/90">
-                <Sparkles className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+              <span className="glass-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-foreground/90">
+                <Sparkles
+                  className="h-3.5 w-3.5 text-accent"
+                  aria-hidden="true"
+                />
                 Open to opportunities
               </span>
             </ScrollReveal>
@@ -442,9 +462,9 @@ function CTA({ showJob }: { showJob: boolean }) {
               </h2>
             </ScrollReveal>
             <ScrollReveal delay={200}>
-              <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-                Open to relocation anywhere for the right opportunity. Let&apos;s
-                talk about your next project.
+              <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-base">
+                Open to relocation anywhere for the right opportunity.
+                Let&apos;s talk about your next project.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={260}>
@@ -455,11 +475,14 @@ function CTA({ showJob }: { showJob: boolean }) {
                 >
                   <Mail className="h-4 w-4" aria-hidden="true" />
                   Get in touch
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                  <ArrowRight
+                    className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
                 </Link>
                 <Link
                   href="/cv"
-                  className="inline-flex h-11 items-center gap-2 rounded-lg glass-chip px-6 text-sm font-medium backdrop-blur-md transition-all hover:bg-card"
+                  className="glass-chip inline-flex h-11 items-center gap-2 rounded-lg px-6 text-sm font-medium backdrop-blur-md transition-all hover:bg-card"
                 >
                   <Download className="h-4 w-4" aria-hidden="true" /> CV
                 </Link>
@@ -470,8 +493,11 @@ function CTA({ showJob }: { showJob: boolean }) {
           // Neutral CTA: re-flows the same visual weight without job-seeking copy.
           <>
             <ScrollReveal>
-              <span className="inline-flex items-center gap-2 rounded-full glass-chip px-3 py-1.5 text-xs font-medium text-foreground/90">
-                <Sparkles className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+              <span className="glass-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-foreground/90">
+                <Sparkles
+                  className="h-3.5 w-3.5 text-accent"
+                  aria-hidden="true"
+                />
                 Available for select engagements
               </span>
             </ScrollReveal>
@@ -482,7 +508,7 @@ function CTA({ showJob }: { showJob: boolean }) {
               </h2>
             </ScrollReveal>
             <ScrollReveal delay={200}>
-              <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
+              <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-base">
                 Whether it&apos;s commissioning a new BMS network, integrating
                 third-party systems, or shipping the software that ties it all
                 together — let&apos;s talk.
@@ -496,11 +522,14 @@ function CTA({ showJob }: { showJob: boolean }) {
                 >
                   <Mail className="h-4 w-4" aria-hidden="true" />
                   Get in touch
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                  <ArrowRight
+                    className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
                 </Link>
                 <Link
                   href="/projects"
-                  className="inline-flex h-11 items-center gap-2 rounded-lg glass-chip px-6 text-sm font-medium backdrop-blur-md transition-all hover:bg-card"
+                  className="glass-chip inline-flex h-11 items-center gap-2 rounded-lg px-6 text-sm font-medium backdrop-blur-md transition-all hover:bg-card"
                 >
                   See recent work
                 </Link>
@@ -517,14 +546,18 @@ function CTA({ showJob }: { showJob: boolean }) {
 
 function FeaturedProjectsSkeleton() {
   return (
-    <section className="border-b border-border" aria-busy="true" aria-label="Loading featured projects">
+    <section
+      className="border-b border-border"
+      aria-busy="true"
+      aria-label="Loading featured projects"
+    >
       <div className="container py-20 md:py-28">
-        <div className="h-8 w-64 shimmer rounded bg-muted" />
+        <div className="shimmer h-8 w-64 rounded bg-muted" />
         <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="h-72 shimmer rounded-2xl bg-muted/40"
+              className="shimmer h-72 rounded-2xl bg-muted/40"
               aria-hidden="true"
             />
           ))}
@@ -536,14 +569,18 @@ function FeaturedProjectsSkeleton() {
 
 function LatestPostsSkeleton() {
   return (
-    <section className="border-b border-border" aria-busy="true" aria-label="Loading latest posts">
+    <section
+      className="border-b border-border"
+      aria-busy="true"
+      aria-label="Loading latest posts"
+    >
       <div className="container py-20 md:py-28">
-        <div className="h-8 w-64 shimmer rounded bg-muted" />
+        <div className="shimmer h-8 w-64 rounded bg-muted" />
         <div className="mt-12 grid gap-5 md:grid-cols-3">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="h-56 shimmer rounded-2xl bg-muted/40"
+              className="shimmer h-56 rounded-2xl bg-muted/40"
               aria-hidden="true"
             />
           ))}
@@ -583,7 +620,7 @@ async function FeaturedProjectsSection() {
               All projects <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
-          <p className="mt-12 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-12 text-sm">
             No published projects yet.
           </p>
         </div>
@@ -669,15 +706,17 @@ async function LatestPostsSection() {
             <ScrollReveal key={p.slug} delay={i * 80}>
               <Link
                 href={`/blog/${p.slug}`}
-                className="group flex h-full flex-col overflow-hidden rounded-2xl glass-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover"
+                className="glass-card group flex h-full flex-col overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover"
               >
                 <div className="relative aspect-[16/10] w-full overflow-hidden">
                   {p.coverUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={p.coverUrl}
                       alt={`${p.title} cover`}
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      quality={70}
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
                     <div
@@ -691,22 +730,26 @@ async function LatestPostsSection() {
                   />
                 </div>
                 <div className="flex flex-1 flex-col p-6">
-                  <p className="font-mono text-xs text-muted-foreground">
+                  <p className="text-muted-foreground font-mono text-xs">
                     {p.publishedAt && (
                       <PostDates
                         publishedAt={p.publishedAt}
                         updatedAt={p.updatedAt}
-                        className="text-xs text-muted-foreground"
+                        className="text-muted-foreground text-xs"
                       />
                     )}
-                    {p.publishedAt && <span className="mx-1.5 opacity-50" aria-hidden="true">·</span>}
+                    {p.publishedAt && (
+                      <span className="mx-1.5 opacity-50" aria-hidden="true">
+                        ·
+                      </span>
+                    )}
                     {p.readingMinutes} min read
                   </p>
                   <h3 className="mt-3 text-base font-semibold tracking-tight group-hover:text-accent">
                     {p.title}
                   </h3>
                   {p.excerpt && (
-                    <p className="mt-2 flex-1 text-sm text-muted-foreground">
+                    <p className="text-muted-foreground mt-2 flex-1 text-sm">
                       {p.excerpt}
                     </p>
                   )}
@@ -730,18 +773,17 @@ export default async function HomePage() {
     getAllExperiences().catch(() => []),
     getSkillGroups().catch(() => []),
   ])) as [
-    | {
-        name?: string;
-        role?: string;
-        location?: string;
-        lookingToNewOpportunity?: boolean;
-        highlights?: { text: string; jobSeekingOnly: boolean }[];
-        preferredLocations?: string[];
-        linkedinUrl?: string | null;
-        stats?: { value: string; label: string; color?: string }[];
-        avatarUrl?: string | null;
-      }
-    | null,
+    {
+      name?: string;
+      role?: string;
+      location?: string;
+      lookingToNewOpportunity?: boolean;
+      highlights?: { text: string; jobSeekingOnly: boolean }[];
+      preferredLocations?: string[];
+      linkedinUrl?: string | null;
+      stats?: { value: string; label: string; color?: string }[];
+      avatarUrl?: string | null;
+    } | null,
     Array<{
       company: string;
       role: string;
@@ -790,11 +832,13 @@ export default async function HomePage() {
 
   // Bento tags: skills in the matching group, in the order the admin set them.
   const bmsTechTags =
-    skillGroups.find((g) => g.name === "Building Automation")?.skills.map((s) => s.name) ??
-    [];
+    skillGroups
+      .find((g) => g.name === "Building Automation")
+      ?.skills.map((s) => s.name) ?? [];
   const softwareTags =
-    skillGroups.find((g) => g.name === "Programming")?.skills.map((s) => s.name) ??
-    [];
+    skillGroups
+      .find((g) => g.name === "Programming")
+      ?.skills.map((s) => s.name) ?? [];
 
   const stats: Stat[] = profile?.stats ?? [];
 

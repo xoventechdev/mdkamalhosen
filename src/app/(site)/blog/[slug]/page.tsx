@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, Calendar, Clock, Eye } from "lucide-react";
 import { ReadingProgress } from "@/components/reading-progress";
@@ -33,7 +34,9 @@ export async function generateStaticParams() {
   }
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { slug } = await params;
   let title = slug;
   let description: string | undefined;
@@ -50,7 +53,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const pageUrl = absoluteUrl(`/blog/${slug}`);
   const ogImage = absoluteUrl(
     `/api/og?type=post&title=${encodeURIComponent(title)}${
-      description ? `&subtitle=${encodeURIComponent(description.slice(0, 140))}` : ""
+      description
+        ? `&subtitle=${encodeURIComponent(description.slice(0, 140))}`
+        : ""
     }`,
   );
   return {
@@ -104,26 +109,29 @@ export default async function BlogPostPage({ params }: PageProps) {
 
       {/* JSON-LD: Article + BreadcrumbList */}
       <JsonLd
-        data={[articleJsonLd({
-          slug: post.slug,
-          title: post.title,
-          excerpt: post.excerpt,
-          coverUrl: post.coverUrl,
-          publishedAt: post.publishedAt,
-          // Use the real `updatedAt` (Mongoose timestamp) for
-          // dateModified, not the publishedAt as the previous code did.
-          // `updatedAt` and `publishedAt` will be equal on a post
-          // that has never been edited; that matches Schema.org's
-          // definition of dateModified.
-          updatedAt: post.updatedAt ?? post.publishedAt,
-          tags: post.tags.map((t) => t.slug),
-          readingMinutes: post.readingMinutes,
-          author: { name: "Md Kamal Hosen" },
-        }), breadcrumbJsonLd([
-          { name: "Home", href: "/" },
-          { name: "Blog", href: "/blog" },
-          { name: post.title, href: `/blog/${post.slug}` },
-        ])]}
+        data={[
+          articleJsonLd({
+            slug: post.slug,
+            title: post.title,
+            excerpt: post.excerpt,
+            coverUrl: post.coverUrl,
+            publishedAt: post.publishedAt,
+            // Use the real `updatedAt` (Mongoose timestamp) for
+            // dateModified, not the publishedAt as the previous code did.
+            // `updatedAt` and `publishedAt` will be equal on a post
+            // that has never been edited; that matches Schema.org's
+            // definition of dateModified.
+            updatedAt: post.updatedAt ?? post.publishedAt,
+            tags: post.tags.map((t) => t.slug),
+            readingMinutes: post.readingMinutes,
+            author: { name: "Md Kamal Hosen" },
+          }),
+          breadcrumbJsonLd([
+            { name: "Home", href: "/" },
+            { name: "Blog", href: "/blog" },
+            { name: post.title, href: `/blog/${post.slug}` },
+          ]),
+        ]}
       />
 
       {/* Reading progress bar */}
@@ -132,11 +140,14 @@ export default async function BlogPostPage({ params }: PageProps) {
       {/* Hero with cover */}
       <section className="relative overflow-hidden border-b border-border">
         {post.coverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={post.coverUrl}
             alt={post.title}
-            className="absolute inset-0 h-full w-full object-cover opacity-40"
+            fill
+            priority
+            sizes="100vw"
+            quality={60}
+            className="object-cover opacity-40"
           />
         ) : (
           <div
@@ -149,51 +160,49 @@ export default async function BlogPostPage({ params }: PageProps) {
           aria-hidden="true"
         />
         <div className="container relative py-20 md:py-28">
-          <ScrollReveal>
-            <p className="font-mono text-xs uppercase tracking-[0.18em] text-accent">
-              Blog
+          <p className="font-mono text-xs uppercase tracking-[0.18em] text-accent">
+            Blog
+          </p>
+          <h1 className="mt-3 max-w-3xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl lg:text-[3.5rem] lg:leading-[1.1]">
+            {post.title}
+          </h1>
+          {post.excerpt && (
+            <p className="text-muted-foreground mt-5 max-w-2xl text-pretty text-base sm:text-lg">
+              {post.excerpt}
             </p>
-            <h1 className="mt-3 max-w-3xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl lg:text-[3.5rem] lg:leading-[1.1]">
-              {post.title}
-            </h1>
-            {post.excerpt && (
-              <p className="mt-5 max-w-2xl text-pretty text-base text-muted-foreground sm:text-lg">
-                {post.excerpt}
-              </p>
-            )}
-            <div className="mt-8 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              {post.publishedAt && (
-                <span className="inline-flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4" aria-hidden="true" />
-                  <PostDates
-                    publishedAt={post.publishedAt}
-                    updatedAt={post.updatedAt}
-                    className="text-sm text-muted-foreground"
-                  />
-                </span>
-              )}
+          )}
+          <div className="text-muted-foreground mt-8 flex flex-wrap items-center gap-4 text-sm">
+            {post.publishedAt && (
               <span className="inline-flex items-center gap-1.5">
-                <Clock className="h-4 w-4" aria-hidden="true" />
-                {post.readingMinutes} min read
+                <Calendar className="h-4 w-4" aria-hidden="true" />
+                <PostDates
+                  publishedAt={post.publishedAt}
+                  updatedAt={post.updatedAt}
+                  className="text-muted-foreground text-sm"
+                />
               </span>
-              <span
-                className="inline-flex items-center gap-1.5"
-                title={`${viewCount.toLocaleString()} views`}
-              >
-                <Eye className="h-4 w-4" aria-hidden="true" />
-                {viewLabel} {viewCount === 1 ? "view" : "views"}
+            )}
+            <span className="inline-flex items-center gap-1.5">
+              <Clock className="h-4 w-4" aria-hidden="true" />
+              {post.readingMinutes} min read
+            </span>
+            <span
+              className="inline-flex items-center gap-1.5"
+              title={`${viewCount.toLocaleString()} views`}
+            >
+              <Eye className="h-4 w-4" aria-hidden="true" />
+              {viewLabel} {viewCount === 1 ? "view" : "views"}
+            </span>
+            {post.tags.length > 0 && (
+              <span className="flex flex-wrap gap-1.5">
+                {post.tags.map((t) => (
+                  <Link key={t.id} href={`/blog/tag/${t.slug}`}>
+                    <Badge variant="accent">#{t.slug}</Badge>
+                  </Link>
+                ))}
               </span>
-              {post.tags.length > 0 && (
-                <span className="flex flex-wrap gap-1.5">
-                  {post.tags.map((t) => (
-                    <Link key={t.id} href={`/blog/tag/${t.slug}`}>
-                      <Badge variant="accent">#{t.slug}</Badge>
-                    </Link>
-                  ))}
-                </span>
-              )}
-            </div>
-          </ScrollReveal>
+            )}
+          </div>
         </div>
       </section>
 
@@ -215,14 +224,16 @@ export default async function BlogPostPage({ params }: PageProps) {
                   {prev ? (
                     <Link
                       href={`/blog/${prev.slug}`}
-                      className="group flex items-center gap-3 rounded-2xl glass-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-card-hover"
+                      className="glass-card group flex items-center gap-3 rounded-2xl p-4 transition-all hover:-translate-y-0.5 hover:shadow-card-hover"
                     >
                       <ArrowLeft
-                        className="h-4 w-4 text-muted-foreground group-hover:text-accent"
+                        className="text-muted-foreground h-4 w-4 group-hover:text-accent"
                         aria-hidden="true"
                       />
                       <div className="min-w-0">
-                        <p className="text-xs text-muted-foreground">Previous</p>
+                        <p className="text-muted-foreground text-xs">
+                          Previous
+                        </p>
                         <p className="mt-0.5 truncate text-sm font-medium">
                           {prev.title}
                         </p>
@@ -234,16 +245,16 @@ export default async function BlogPostPage({ params }: PageProps) {
                   {next ? (
                     <Link
                       href={`/blog/${next.slug}`}
-                      className="group flex items-center justify-end gap-3 rounded-2xl glass-card p-4 text-right transition-all hover:-translate-y-0.5 hover:shadow-card-hover"
+                      className="glass-card group flex items-center justify-end gap-3 rounded-2xl p-4 text-right transition-all hover:-translate-y-0.5 hover:shadow-card-hover"
                     >
                       <div className="min-w-0">
-                        <p className="text-xs text-muted-foreground">Next</p>
+                        <p className="text-muted-foreground text-xs">Next</p>
                         <p className="mt-0.5 truncate text-sm font-medium">
                           {next.title}
                         </p>
                       </div>
                       <ArrowRight
-                        className="h-4 w-4 text-muted-foreground group-hover:text-accent"
+                        className="text-muted-foreground h-4 w-4 group-hover:text-accent"
                         aria-hidden="true"
                       />
                     </Link>
@@ -264,7 +275,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               <aside className="lg:sticky lg:top-24 lg:self-start">
                 <ScrollReveal>
                   <div className="glass-card p-6">
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                    <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.18em]">
                       On this page
                     </p>
                     <nav className="mt-4">
@@ -276,7 +287,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                           >
                             <a
                               href={`#${h.id}`}
-                              className="link-underline inline-block text-muted-foreground hover:text-foreground"
+                              className="link-underline text-muted-foreground inline-block hover:text-foreground"
                             >
                               {h.text}
                             </a>

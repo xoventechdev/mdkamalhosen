@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -26,9 +27,11 @@ export async function generateStaticParams() {
   }
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const { tag } = await params;
-  const all = ((await getAllTags().catch(() => [])) as unknown) as Array<{
+  const all = (await getAllTags().catch(() => [])) as unknown as Array<{
     slug: string;
     name: string;
   }>;
@@ -64,7 +67,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BlogTagPage({ params }: PageProps) {
   const { tag } = await params;
-  const posts = ((await getPostsByTag(tag).catch(() => [])) as unknown) as Array<{
+  const posts = (await getPostsByTag(tag).catch(() => [])) as unknown as Array<{
     slug: string;
     title: string;
     excerpt?: string | null;
@@ -74,7 +77,7 @@ export default async function BlogTagPage({ params }: PageProps) {
     readingMinutes: number;
     tags: Array<{ id: string; slug: string; name: string }>;
   }>;
-  const allTags = ((await getAllTags().catch(() => [])) as unknown) as Array<{
+  const allTags = (await getAllTags().catch(() => [])) as unknown as Array<{
     slug: string;
     name: string;
   }>;
@@ -106,14 +109,16 @@ export default async function BlogTagPage({ params }: PageProps) {
         <div className="container py-16 md:py-20">
           {posts.length === 0 ? (
             <div className="glass-card mx-auto flex max-w-md flex-col items-center gap-3 rounded-2xl border-dashed p-10 text-center">
-              <p className="text-base font-medium text-foreground">Nothing here yet.</p>
-              <p className="text-sm text-muted-foreground">
-                Posts tagged <span className="font-mono">#{current.name}</span> will
-                land here when published.
+              <p className="text-base font-medium text-foreground">
+                Nothing here yet.
+              </p>
+              <p className="text-muted-foreground text-sm">
+                Posts tagged <span className="font-mono">#{current.name}</span>{" "}
+                will land here when published.
               </p>
               <Link
                 href="/blog"
-                className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg glass-chip px-4 text-sm font-medium text-foreground hover:bg-card"
+                className="glass-chip mt-4 inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-medium text-foreground hover:bg-card"
               >
                 <ArrowRight className="h-4 w-4 rotate-180" /> Back to blog
               </Link>
@@ -124,15 +129,17 @@ export default async function BlogTagPage({ params }: PageProps) {
                 <ScrollReveal key={p.slug} delay={i * 70}>
                   <Link
                     href={`/blog/${p.slug}`}
-                    className="group flex h-full flex-col overflow-hidden rounded-2xl glass-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-hover"
+                    className="glass-card group flex h-full flex-col overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-hover"
                   >
                     <div className="relative aspect-[16/9] w-full overflow-hidden">
                       {p.coverUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <Image
                           src={p.coverUrl}
                           alt={`${p.title} cover`}
-                          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          quality={70}
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                       ) : (
                         <div
@@ -148,13 +155,15 @@ export default async function BlogTagPage({ params }: PageProps) {
                     <div className="flex flex-1 flex-col p-6">
                       <div className="flex flex-wrap items-center gap-2">
                         {p.tags.slice(0, 2).map((t) => (
-                          <Badge key={t.id} variant="accent">#{t.slug}</Badge>
+                          <Badge key={t.id} variant="accent">
+                            #{t.slug}
+                          </Badge>
                         ))}
                         {p.publishedAt && (
                           <PostDates
                             publishedAt={p.publishedAt}
                             updatedAt={p.updatedAt}
-                            className="text-[11px] text-muted-foreground"
+                            className="text-muted-foreground text-[11px]"
                           />
                         )}
                       </div>
@@ -162,11 +171,11 @@ export default async function BlogTagPage({ params }: PageProps) {
                         {p.title}
                       </h2>
                       {p.excerpt && (
-                        <p className="mt-2 flex-1 text-sm text-muted-foreground">
+                        <p className="text-muted-foreground mt-2 flex-1 text-sm">
                           {p.excerpt}
                         </p>
                       )}
-                      <p className="mt-4 font-mono text-xs text-muted-foreground">
+                      <p className="text-muted-foreground mt-4 font-mono text-xs">
                         {p.readingMinutes} min read
                       </p>
                     </div>

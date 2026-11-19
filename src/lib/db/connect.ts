@@ -1,4 +1,9 @@
 import mongoose from "mongoose";
+import { configureDns } from "./dns.cjs";
+
+// Node-only resolver override for dev environments whose OS resolver refuses
+// SRV lookups. Idempotent, and evaluated before `mongoose.connect()` runs.
+configureDns();
 
 declare global {
   // eslint-disable-next-line no-var

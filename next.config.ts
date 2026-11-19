@@ -12,12 +12,15 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "*.blob.vercel-storage.com" },
     ],
     // Optimize image delivery
-    formats: ['image/avif', 'image/webp'],
+    formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days cache
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     dangerouslyAllowSVG: false,
-    contentDispositionType: 'inline',
+    contentDispositionType: "inline",
+    // Explicit quality levels used by <Image /> across the site. Keeping the
+    // list small lets the optimizer cache more aggressively.
+    qualities: [60, 70, 80],
 
     // Disable static image optimization for remote images
     // (we handle optimization via CDN)
@@ -31,10 +34,10 @@ const nextConfig: NextConfig = {
 
   // Optimize package imports
   experimental: {
-    optimizePackageImports: ["lucide-react", "framer-motion", "react", "react-dom"],
+    optimizePackageImports: ["lucide-react"],
     // Enable server actions
     serverActions: {
-      bodySizeLimit: '2mb',
+      bodySizeLimit: "2mb",
     },
   },
 
@@ -44,7 +47,7 @@ const nextConfig: NextConfig = {
   // ===== CACHING =====
 
   // Cache static assets
-  assetPrefix: process.env.NEXT_PUBLIC_ASSET_PREFIX || '',
+  assetPrefix: process.env.NEXT_PUBLIC_ASSET_PREFIX || "",
 
   // ===== SECURITY HEADERS =====
   async headers() {
