@@ -4,7 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/site-header";
 import { ConditionalSiteFooter } from "@/components/conditional-site-footer";
-import { CommandPalette } from "@/components/ui/command-palette";
+import { CommandPaletteLoader } from "@/components/ui/command-palette-loader";
 import { Toaster } from "sonner";
 import { JsonLd } from "@/components/json-ld";
 import { personJsonLd, websiteJsonLd, combineJsonLd } from "@/lib/jsonld";
@@ -236,7 +236,7 @@ export default async function RootLayout({
           </main>
 
           <ConditionalSiteFooter profile={footerProfile} />
-          <CommandPalette />
+          <CommandPaletteLoader />
           <Toaster richColors position="top-right" closeButton />
           <JsonLd data={jsonLd} />
 

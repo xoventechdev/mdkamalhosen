@@ -13,9 +13,21 @@ import {
   Compass,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { search, type SearchItem, type SearchItemType } from "@/lib/search-index";
+import {
+  COMMAND_PALETTE_CLOSE,
+  COMMAND_PALETTE_OPEN,
+  COMMAND_PALETTE_TOGGLE,
+} from "@/lib/command-palette-events";
+import {
+  search,
+  type SearchItem,
+  type SearchItemType,
+} from "@/lib/search-index";
 
-const iconForType: Record<SearchItemType, React.ComponentType<{ className?: string }>> = {
+const iconForType: Record<
+  SearchItemType,
+  React.ComponentType<{ className?: string }>
+> = {
   route: HomeIcon,
   project: FolderGit2,
   post: FileText,
@@ -39,13 +51,13 @@ const FOCUSABLE_SELECTOR =
  *  - Restores focus to the previously-focused element on close
  *  - aria-activedescendant on the input reflects the highlighted result
  */
-export const COMMAND_PALETTE_TOGGLE = "puku:command-palette:toggle";
-export const COMMAND_PALETTE_OPEN = "puku:command-palette:open";
-export const COMMAND_PALETTE_CLOSE = "puku:command-palette:close";
-
-export function CommandPalette() {
+export function CommandPalette({
+  defaultOpen = false,
+}: {
+  defaultOpen?: boolean;
+} = {}) {
   const router = useRouter();
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(defaultOpen);
   const [query, setQuery] = React.useState("");
   const [active, setActive] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
@@ -97,9 +109,15 @@ export function CommandPalette() {
     window.addEventListener(COMMAND_PALETTE_CLOSE, onClose as EventListener);
     return () => {
       window.removeEventListener("keydown", onKey);
-      window.removeEventListener(COMMAND_PALETTE_TOGGLE, onToggle as EventListener);
+      window.removeEventListener(
+        COMMAND_PALETTE_TOGGLE,
+        onToggle as EventListener,
+      );
       window.removeEventListener(COMMAND_PALETTE_OPEN, onOpen as EventListener);
-      window.removeEventListener(COMMAND_PALETTE_CLOSE, onClose as EventListener);
+      window.removeEventListener(
+        COMMAND_PALETTE_CLOSE,
+        onClose as EventListener,
+      );
     };
   }, [setOpenAndReset]);
 
@@ -202,13 +220,16 @@ export function CommandPalette() {
       </h2>
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-black/40 backdrop-blur-md animate-fade-in"
+        className="absolute inset-0 animate-fade-in bg-black/40 backdrop-blur-md"
         onClick={() => setOpen(false)}
       />
       <div className="relative z-10 w-full max-w-xl animate-spring-in">
         <div className="glass-card overflow-hidden rounded-2xl shadow-card-hover">
           <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-            <Search className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            <Search
+              className="text-muted-foreground h-4 w-4"
+              aria-hidden="true"
+            />
             <input
               ref={inputRef}
               type="text"
@@ -221,9 +242,9 @@ export function CommandPalette() {
               aria-activedescendant={
                 results[active] ? `cmd-result-${active}` : undefined
               }
-              className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              className="placeholder:text-muted-foreground flex-1 bg-transparent text-sm text-foreground outline-none"
             />
-            <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">
+            <kbd className="text-muted-foreground hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] sm:inline">
               ESC
             </kbd>
           </div>
@@ -235,7 +256,7 @@ export function CommandPalette() {
             className="max-h-[60vh] overflow-y-auto p-2"
           >
             {results.length === 0 ? (
-              <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+              <p className="text-muted-foreground px-3 py-8 text-center text-sm">
                 {query.trim()
                   ? `No results for "${query}".`
                   : "Type to search projects, posts, and pages."}
@@ -265,7 +286,7 @@ export function CommandPalette() {
                             "inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border",
                             selected
                               ? "border-accent/40 bg-accent/10 text-accent"
-                              : "border-border bg-card text-muted-foreground",
+                              : "text-muted-foreground border-border bg-card",
                           )}
                         >
                           <Icon className="h-4 w-4" aria-hidden="true" />
@@ -275,7 +296,7 @@ export function CommandPalette() {
                             {item.title}
                           </span>
                           {item.subtitle && (
-                            <span className="block truncate text-xs text-muted-foreground">
+                            <span className="text-muted-foreground block truncate text-xs">
                               {item.subtitle}
                             </span>
                           )}
@@ -287,7 +308,7 @@ export function CommandPalette() {
                           />
                         ) : (
                           <ArrowRight
-                            className="h-3.5 w-3.5 text-muted-foreground/40"
+                            className="text-muted-foreground/40 h-3.5 w-3.5"
                             aria-hidden="true"
                           />
                         )}
@@ -299,20 +320,28 @@ export function CommandPalette() {
             )}
           </div>
 
-          <div className="flex items-center justify-between border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
+          <div className="text-muted-foreground flex items-center justify-between border-t border-border px-3 py-2 text-[11px]">
             <div className="flex items-center gap-3">
               <span className="inline-flex items-center gap-1">
-                <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">↑</kbd>
-                <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">↓</kbd>
+                <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">
+                  ↑
+                </kbd>
+                <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">
+                  ↓
+                </kbd>
                 navigate
               </span>
               <span className="inline-flex items-center gap-1">
-                <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">↵</kbd>
+                <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">
+                  ↵
+                </kbd>
                 open
               </span>
             </div>
             <span className="inline-flex items-center gap-1">
-              <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">⌘K</kbd>
+              <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">
+                ⌘K
+              </kbd>
               toggle
             </span>
           </div>

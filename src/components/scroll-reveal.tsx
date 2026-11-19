@@ -25,6 +25,33 @@ interface ScrollRevealProps {
 const MAX_DELAY_MS = 200;
 const REVEAL_DURATION_MS = 500;
 
+// One IntersectionObserver is shared by every reveal on the page. A page can
+// mount dozens of these wrappers; creating a separate observer per element is
+// needless main-thread work during hydration.
+type RevealCallback = () => void;
+const revealCallbacks = new Map<Element, RevealCallback>();
+let sharedObserver: IntersectionObserver | null = null;
+
+function getSharedObserver(): IntersectionObserver | null {
+  if (typeof IntersectionObserver === "undefined") return null;
+  if (!sharedObserver) {
+    sharedObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const callback = revealCallbacks.get(entry.target);
+          if (!callback) continue;
+          revealCallbacks.delete(entry.target);
+          sharedObserver?.unobserve(entry.target);
+          callback();
+        }
+      },
+      { threshold: 0.05, rootMargin: "0px 0px -8% 0px" },
+    );
+  }
+  return sharedObserver;
+}
+
 /**
  * Subtle entrance animation for the public site.
  *
@@ -85,23 +112,25 @@ export function ScrollReveal({
       return () => window.clearTimeout(t);
     }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            // Reveal once. The `revealed` state is one-way so the item
-            // never disappears again, even if the user scrolls past.
-            window.setTimeout(() => setRevealed(true), safeDelay);
-            observer.disconnect();
-            return;
-          }
-        }
-      },
-      { threshold: 0.05, rootMargin: "0px 0px -8% 0px" },
-    );
+    const observer = getSharedObserver();
+    if (!observer) {
+      // Very old browser / test environment: never leave content hidden.
+      setRevealed(true);
+      return;
+    }
 
+    // Reveal once. The `revealed` state is one-way so the item never
+    // disappears again, even if the user scrolls past.
+    const reveal = () => {
+      window.setTimeout(() => setRevealed(true), safeDelay);
+    };
+
+    revealCallbacks.set(el, reveal);
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      revealCallbacks.delete(el);
+      observer.unobserve(el);
+    };
   }, [safeDelay]);
 
   // While `revealed` is false, the element is at opacity:0 + small Y offset.

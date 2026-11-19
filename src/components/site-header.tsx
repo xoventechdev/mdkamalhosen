@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { navItems } from "@/lib/nav";
 import { SITE_DEFAULTS } from "@/lib/site-defaults";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { COMMAND_PALETTE_TOGGLE } from "@/components/ui/command-palette";
+import { COMMAND_PALETTE_TOGGLE } from "@/lib/command-palette-events";
 
 export interface SiteHeaderProps {
   /** Full name from the profile (e.g. "Md Kamal Hosen"). When provided,
@@ -69,7 +69,7 @@ export function SiteHeader({ name }: SiteHeaderProps = {}) {
           <span className="hidden xs:inline">
             <span className="text-foreground">{firstName}</span>
             {tail && (
-              <span className="ml-1.5 text-muted-foreground">{tail}</span>
+              <span className="text-muted-foreground ml-1.5">{tail}</span>
             )}
           </span>
           <span className="xs:hidden">
@@ -111,11 +111,11 @@ export function SiteHeader({ name }: SiteHeaderProps = {}) {
             type="button"
             onClick={openPalette}
             aria-label="Open search (Cmd/Ctrl-K)"
-            className="hidden h-9 items-center gap-2 rounded-md border border-border bg-card/50 px-3 text-sm text-muted-foreground transition-colors hover:border-accent/40 hover:text-foreground sm:inline-flex"
+            className="text-muted-foreground hidden h-9 items-center gap-2 rounded-md border border-border bg-card/50 px-3 text-sm transition-colors hover:border-accent/40 hover:text-foreground sm:inline-flex"
           >
             <Search className="h-3.5 w-3.5" aria-hidden="true" />
             <span className="hidden lg:inline">Search…</span>
-            <kbd className="ml-2 hidden rounded border border-border bg-muted px-1 font-mono text-[10px] text-muted-foreground lg:inline">
+            <kbd className="text-muted-foreground ml-2 hidden rounded border border-border bg-muted px-1 font-mono text-[10px] lg:inline">
               ⌘K
             </kbd>
           </button>
@@ -151,11 +151,11 @@ export function SiteHeader({ name }: SiteHeaderProps = {}) {
       {open && (
         <div className="md:hidden">
           <div
-            className="fixed inset-0 top-16 z-30 bg-background/80 backdrop-blur-sm animate-fade-in"
+            className="fixed inset-0 top-16 z-30 animate-fade-in bg-background/80 backdrop-blur-sm"
             onClick={() => setOpen(false)}
             aria-hidden="true"
           />
-          <nav className="container relative z-40 flex flex-col gap-1 py-6 animate-fade-up">
+          <nav className="container relative z-40 flex animate-fade-up flex-col gap-1 py-6">
             {navItems
               .filter((i) => !i.cta)
               .map((item, i) => {
@@ -170,14 +170,17 @@ export function SiteHeader({ name }: SiteHeaderProps = {}) {
                     onClick={() => setOpen(false)}
                     style={{ animationDelay: `${i * 40}ms` }}
                     className={cn(
-                      "flex items-center justify-between rounded-xl border border-border bg-card/60 px-4 py-3 text-base font-medium transition-colors animate-fade-up",
+                      "flex animate-fade-up items-center justify-between rounded-xl border border-border bg-card/60 px-4 py-3 text-base font-medium transition-colors",
                       active
                         ? "border-accent/40 bg-accent/10 text-accent"
                         : "text-foreground hover:bg-card",
                     )}
                   >
                     {item.label}
-                    <ArrowRight className="h-4 w-4 opacity-50" aria-hidden="true" />
+                    <ArrowRight
+                      className="h-4 w-4 opacity-50"
+                      aria-hidden="true"
+                    />
                   </Link>
                 );
               })}
@@ -191,7 +194,7 @@ export function SiteHeader({ name }: SiteHeaderProps = {}) {
             >
               <Search className="h-4 w-4" aria-hidden="true" />
               Search the site
-              <kbd className="ml-2 rounded border border-border bg-muted px-1 font-mono text-[10px] text-muted-foreground">
+              <kbd className="text-muted-foreground ml-2 rounded border border-border bg-muted px-1 font-mono text-[10px]">
                 ⌘K
               </kbd>
             </button>

@@ -95,7 +95,33 @@ const nextConfig: NextConfig = {
       },
     ];
 
+    // Public metadata files are not content-hashed. Next/Vercel defaults them
+    // to `max-age=0`, which forces a revalidation on every visit and shows up
+    // in Lighthouse as an inefficient cache policy.
+    const immutableMetadataHeaders = [
+      {
+        key: "Cache-Control",
+        value: "public, max-age=31536000, immutable",
+      },
+    ];
+
     return [
+      {
+        source: "/manifest.webmanifest",
+        headers: immutableMetadataHeaders,
+      },
+      {
+        source: "/favicon.ico",
+        headers: immutableMetadataHeaders,
+      },
+      {
+        source: "/icon.svg",
+        headers: immutableMetadataHeaders,
+      },
+      {
+        source: "/apple-touch-icon.png",
+        headers: immutableMetadataHeaders,
+      },
       {
         source: "/(.*)",
         headers: securityHeaders,
