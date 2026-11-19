@@ -5,7 +5,6 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/site-header";
 import { ConditionalSiteFooter } from "@/components/conditional-site-footer";
 import { CommandPaletteLoader } from "@/components/ui/command-palette-loader";
-import { Toaster } from "sonner";
 import { JsonLd } from "@/components/json-ld";
 import { personJsonLd, websiteJsonLd, combineJsonLd } from "@/lib/jsonld";
 import { absoluteUrl } from "@/lib/utils";
@@ -237,7 +236,6 @@ export default async function RootLayout({
 
           <ConditionalSiteFooter profile={footerProfile} />
           <CommandPaletteLoader />
-          <Toaster richColors position="top-right" closeButton />
           <JsonLd data={jsonLd} />
 
           {/* Analytics - load after page is interactive */}

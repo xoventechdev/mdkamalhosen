@@ -1,3 +1,4 @@
+import { Toaster } from "sonner";
 import { getApprovedComments } from "@/server/queries";
 import { currentAdmin } from "@/lib/auth";
 import { CommentThread } from "./comment-thread";
@@ -9,7 +10,10 @@ export interface CommentsSectionProps {
   commentsEnabled?: boolean;
 }
 
-export async function CommentsSection({ postId, commentsEnabled = true }: CommentsSectionProps) {
+export async function CommentsSection({
+  postId,
+  commentsEnabled = true,
+}: CommentsSectionProps) {
   const globallyDisabled = process.env.DISABLE_COMMENTS === "true";
   // `currentAdmin` is non-throwing; returns null for visitors so we can
   // safely render inside a server component without a redirect.
@@ -17,8 +21,7 @@ export async function CommentsSection({ postId, commentsEnabled = true }: Commen
   const isAdmin = !!admin;
   const comments = await getApprovedComments(postId);
 
-  const totalCount =
-    comments.reduce((n, c) => n + 1 + c.replies.length, 0);
+  const totalCount = comments.reduce((n, c) => n + 1 + c.replies.length, 0);
 
   const canPost = !globallyDisabled && commentsEnabled;
 
@@ -28,7 +31,7 @@ export async function CommentsSection({ postId, commentsEnabled = true }: Commen
         <h2 className="text-2xl font-semibold tracking-tight">
           Comments ({totalCount})
         </h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           {isAdmin
             ? "You are signed in as admin. Your replies are posted immediately."
             : "Comments are reviewed before they appear publicly."}
@@ -38,7 +41,7 @@ export async function CommentsSection({ postId, commentsEnabled = true }: Commen
       <CommentThread comments={comments} isAdmin={isAdmin} />
 
       {!canPost ? (
-        <p className="rounded-md border border-dashed border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+        <p className="text-muted-foreground rounded-md border border-dashed border-border bg-muted/20 px-4 py-3 text-sm">
           {globallyDisabled
             ? "Comments are currently disabled site-wide."
             : "Comments are disabled for this post."}
@@ -46,6 +49,10 @@ export async function CommentsSection({ postId, commentsEnabled = true }: Commen
       ) : (
         <CommentForm postId={postId} parentId={null} variant="full" />
       )}
+
+      {/* Only mounted where toasts can actually fire. Keeping this out of the
+          root layout removes sonner from every other page's initial JS. */}
+      <Toaster richColors position="top-right" closeButton />
     </section>
   );
 }

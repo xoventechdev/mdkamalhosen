@@ -10,6 +10,7 @@ import {
 import { PageHeader } from "@/components/page-header";
 import { ScrollReveal } from "@/components/scroll-reveal";
 import { ContactForm } from "@/components/contact-form";
+import { Toaster } from "sonner";
 import { absoluteUrl } from "@/lib/utils";
 import { getProfile } from "@/server/queries";
 
@@ -218,6 +219,7 @@ export default async function ContactPage() {
           </div>
         </div>
       </section>
+      <Toaster richColors position="top-right" closeButton />
     </>
   );
 }
