@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import Image from "next/image";
 import { X, Expand, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -45,7 +45,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!isModalOpen) return;
 
     if (e.key === "Escape") {
@@ -55,12 +55,12 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
     } else if (e.key === "ArrowLeft") {
       navigateImage("prev");
     }
-  };
+  }, [isModalOpen, closeModal, navigateImage]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isModalOpen, selectedIndex]);
+  }, [handleKeyDown]);
 
   if (images.length === 0) return null;
 

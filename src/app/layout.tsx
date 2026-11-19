@@ -223,16 +223,8 @@ export default async function RootLayout({
         <link rel="preload" href="/_next/static/css/main.css" as="style" />
 
         {/* DNS prefetch for all external domains */}
-        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
         <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />
         <link rel="dns-prefetch" href="https://va.vercel-insights.com" />
-
-        {/* Vercel Insights */}
-        <Script
-          src="/_next/static/chunks/main.js"
-          strategy="afterInteractive"
-        />
       </Head>
 
       <body className="relative min-h-screen bg-background font-sans text-foreground">
@@ -250,6 +242,12 @@ export default async function RootLayout({
           >
             Skip to content
           </a>
+
+          {/* Analytics script - moved outside Head */}
+          <Script
+            src="/_next/static/chunks/main.js"
+            strategy="afterInteractive"
+          />
 
           <SiteHeader name={footerProfile?.name} />
 

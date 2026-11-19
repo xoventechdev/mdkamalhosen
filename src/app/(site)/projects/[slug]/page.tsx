@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import {
   ArrowLeft,
   ArrowRight,
@@ -179,12 +180,15 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           legible regardless of the underlying image. */}
       <section className="relative overflow-hidden border-b border-border">
         {parsedProject.coverUrl ? (
-          <img
+          <Image
             src={parsedProject.coverUrl}
             alt={`${parsedProject.title} cover`}
+            width={1920}
+            height={1080}
             className="aspect-[21/9] w-full object-cover md:aspect-[21/7]"
-            loading="eager"
             priority={true}
+            quality={85}
+            sizes="100vw"
           />
         ) : (
           <div
