@@ -20,7 +20,7 @@ import { breadcrumbJsonLd, creativeWorkJsonLd } from "@/lib/jsonld";
 
 // Performance: Force static generation for better caching
 export const dynamic = 'force-static';
-export const revalidate = 60 * 60 * 24; // 24 hours cache
+export const revalidate = 86400; // 24 hours cache
 
 interface PageProps {
   params: Promise<{ slug: string }>;

@@ -10,7 +10,7 @@ import { absoluteUrl } from "@/lib/utils";
 
 // Performance: Force static generation
 export const dynamic = 'force-static';
-export const revalidate = 60 * 60 * 24; // 24 hours
+export const revalidate = 86400; // 24 hours
 
 const ogImage = absoluteUrl(
   "/api/og?type=project&title=Projects&subtitle=BMS+%C2%B7+Software+%C2%B7+IoT+%C2%B7+Android",
