@@ -36,8 +36,6 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
-    // Enable parallel routes (if using)
-    ppr: true,
     // Enable server components in browser
     serverComponentsInBrowser: false,
   },
@@ -46,9 +44,6 @@ const nextConfig: NextConfig = {
   compress: true,
 
   // ===== OUTPUT OPTIMIZATIONS =====
-
-  // Generate static pages by default
-  output: 'standalone',
 
   // Enable React Server Components
   reactMode: 'concurrent',
