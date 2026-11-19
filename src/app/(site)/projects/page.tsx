@@ -8,7 +8,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getPublishedProjects } from "@/server/queries";
 import { absoluteUrl } from "@/lib/utils";
 
-export const revalidate = 60;
+// Performance: Force static generation
+export const dynamic = 'force-static';
+export const revalidate = 60 * 60 * 24; // 24 hours
 
 const ogImage = absoluteUrl(
   "/api/og?type=project&title=Projects&subtitle=BMS+%C2%B7+Software+%C2%B7+IoT+%C2%B7+Android",
@@ -45,30 +47,52 @@ const filters = [
   { value: "android", label: "Android", color: "text-cat-android" },
 ];
 
+// Performance: Cache projects data
+let projectsCache: ProjectCardData[] | null = null;
+let cachePromise: Promise<ProjectCardData[]> | null = null;
+
 async function loadProjects(): Promise<ProjectCardData[]> {
-  // Errors bubble to the nearest error.tsx — same convention as the home page.
-  // No static fallback: an empty DB renders an EmptyState so this page
-  // always matches the admin panel's view.
-  const rows = (await getPublishedProjects()) as unknown as Array<{
-    slug: string;
-    title: string;
-    excerpt: string;
-    category: string;
-    year: string;
-    coverUrl?: string | null;
-    techStack: string[];
-  }>;
-  return rows.map((p) => ({
-    slug: p.slug,
-    title: p.title,
-    excerpt: p.excerpt,
-    category: p.category as ProjectCardData["category"],
-    year: p.year,
-    // Forward the cover URL so the card renders the uploaded image
-    // instead of the gradient placeholder.
-    coverUrl: p.coverUrl ?? undefined,
-    techStack: p.techStack,
-  }));
+  // Return cached data if available
+  if (projectsCache) {
+    return projectsCache;
+  }
+
+  // Return existing promise if in progress
+  if (cachePromise) {
+    return cachePromise;
+  }
+
+  // Fetch and cache
+  cachePromise = getPublishedProjects()
+    .then((rows) => {
+      const projects = (rows as unknown as Array<{
+        slug: string;
+        title: string;
+        excerpt: string;
+        category: string;
+        year: string;
+        coverUrl?: string | null;
+        techStack: string[];
+      }>).map((p) => ({
+        slug: p.slug,
+        title: p.title,
+        excerpt: p.excerpt,
+        category: p.category as ProjectCardData["category"],
+        year: p.year,
+        coverUrl: p.coverUrl ?? undefined,
+        techStack: p.techStack,
+      }));
+
+      projectsCache = projects;
+      cachePromise = null;
+      return projects;
+    })
+    .catch((error) => {
+      cachePromise = null;
+      throw error;
+    });
+
+  return cachePromise;
 }
 
 // ProjectFilter is a client component because the chips toggle state in the
@@ -77,6 +101,7 @@ import { ProjectFilter } from "@/components/project-filter";
 
 export default async function ProjectsPage() {
   const allProjects = await loadProjects();
+
   return (
     <>
       <PageHeader

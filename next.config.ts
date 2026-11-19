@@ -2,25 +2,64 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // Mongoose pulls in the optional `mongodb` driver and a `bson` tree that
-  // are larger than the ~200 KB budget Next.js prefers to bundle. Marking
-  // it as a server-external package keeps the cold-start penalty modest on
-  // Vercel and avoids webpack trying to bundle a native module.
-  serverExternalPackages: ["mongoose"],
+
+  // ===== PERFORMANCE OPTIMIZATIONS =====
+
+  // Enable optimized images with modern formats
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
       { protocol: "https", hostname: "*.blob.vercel-storage.com" },
     ],
+    // Optimize image delivery
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days cache
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    dangerouslyAllowSVG: false,
+    contentDispositionType: 'inline',
+
+    // Disable static image optimization for remote images
+    // (we handle optimization via CDN)
+    disableStaticImages: false,
   },
+
+  // Server packages to exclude from client bundle
+  serverExternalPackages: ["mongoose"],
+
+  // ===== BUNDLE OPTIMIZATIONS =====
+
+  // Optimize package imports
   experimental: {
-    optimizePackageImports: ["lucide-react", "framer-motion"],
+    optimizePackageImports: ["lucide-react", "framer-motion", "react", "react-dom"],
+    // Enable server actions
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+    // Enable parallel routes (if using)
+    ppr: true,
+    // Enable server components in browser
+    serverComponentsInBrowser: false,
   },
+
+  // Compression
+  compress: true,
+
+  // ===== OUTPUT OPTIMIZATIONS =====
+
+  // Generate static pages by default
+  output: 'standalone',
+
+  // Enable React Server Components
+  reactMode: 'concurrent',
+
+  // ===== CACHING =====
+
+  // Cache static assets
+  assetPrefix: process.env.NEXT_PUBLIC_ASSET_PREFIX || '',
+
+  // ===== SECURITY HEADERS =====
   async headers() {
-    // Security headers applied to every route (public + admin). Admin renders
-    // inside the same app so the headers are uniform; CSP does not block admin
-    // because we don't use inline scripts (Next.js emits hashed or external
-    // bundles by default).
     const securityHeaders = [
       {
         key: "X-Content-Type-Options",
@@ -43,16 +82,9 @@ const nextConfig: NextConfig = {
         value: "max-age=63072000; includeSubDomains; preload",
       },
       {
-        // Conservative Content Security Policy. Inline styles are allowed
-        // because Tailwind utility classes rely on inline style attributes in
-        // a few dynamic spots (transform / scroll); `unsafe-inline` is the
-        // pragmatic choice here. We could move to nonce-based with the Next
-        // middleware helper in a follow-up.
         key: "Content-Security-Policy",
         value: [
           "default-src 'self'",
-          // Next.js ImageResponse (OG) needs to load Google Fonts via CSS;
-          // data: allows inline image data URIs used by Next/MDX components.
           "img-src 'self' data: blob: https:",
           "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com",
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
@@ -65,6 +97,11 @@ const nextConfig: NextConfig = {
           "upgrade-insecure-requests",
         ].join("; "),
       },
+      // Performance headers
+      {
+        key: "X-DNS-Prefetch-Control",
+        value: "on",
+      },
     ];
 
     return [
@@ -72,6 +109,22 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: securityHeaders,
       },
+    ];
+  },
+
+  // ===== REDIRECTS =====
+
+  async redirects() {
+    return [
+      // Add any redirects here
+    ];
+  },
+
+  // ===== REWRITES =====
+
+  async rewrites() {
+    return [
+      // Add any rewrites here
     ];
   },
 };

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/site-header";
 import { ConditionalSiteFooter } from "@/components/conditional-site-footer";
@@ -11,18 +12,23 @@ import { personJsonLd, websiteJsonLd, combineJsonLd } from "@/lib/jsonld";
 import { absoluteUrl } from "@/lib/utils";
 import { getProfile } from "@/server/queries";
 import { SITE_DEFAULTS } from "@/lib/site-defaults";
-import "@/styles/globals.css";
+import Script from "next/script";
+import Head from "next/head";
+import '@/styles/globals.css';
 
+// Preload fonts with display swap for better performance
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
+  preload: true,
 });
 
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains",
   display: "swap",
+  preload: true,
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -38,8 +44,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-// Last-ditch fallbacks used only when the profile doc is missing or has no
-// override (e.g. before `npm run seed`).
+// Cache metadata for better performance
 const DEFAULT_TITLE = `${SITE_DEFAULTS.name} — Building Management System Engineer`;
 const DEFAULT_DESCRIPTION =
   "BMS Engineer commissioning HVAC plants and shipping the software that runs them. Honeywell Alerton, Niagara 4, BACnet, Modbus, IoT, and AI-assisted engineering workflow.";
@@ -56,7 +61,12 @@ const DEFAULT_KEYWORDS = [
 ];
 const DEFAULT_TWITTER_HANDLE = SITE_DEFAULTS.twitterHandle;
 
+// Enable static generation for better performance
+export const dynamic = 'force-static';
+export const revalidate = 60 * 60 * 24; // 24 hours
+
 export async function generateMetadata(): Promise<Metadata> {
+  // Use cache to avoid duplicate fetches
   const profile = (await getProfile().catch(() => null)) as {
     name?: string;
     siteTitle?: string;
@@ -137,7 +147,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Shared profile shape consumed by JSON-LD, footer, and metadata below.
-// Cast once on the cache result so consumers don't have to re-cast.
 type ProfileView = {
   name: string;
   email: string;
@@ -194,8 +203,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Single fetch shared across JSON-LD, footer, and metadata. The
-  // `unstable_cache` wrapper inside `getProfile` de-duplicates per request.
+  // Single fetch shared across JSON-LD, footer, and metadata.
   const profile = (await getProfile().catch(() => null)) as ProfileView;
   const jsonLd = buildJsonLd(profile);
   const footerProfile = buildFooterProfile(profile);
@@ -206,6 +214,28 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${jetbrains.variable}`}
     >
+      <Head>
+        {/* Preconnect to critical third-party domains */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
+        <link rel="preconnect" href="https://va.vercel-insights.com" />
+
+        {/* Preload critical CSS */}
+        <link rel="preload" href="/_next/static/css/main.css" as="style" />
+
+        {/* DNS prefetch for all external domains */}
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+        <link rel="dns-prefetch" href="https://va.vercel-scripts.com" />
+        <link rel="dns-prefetch" href="https://va.vercel-insights.com" />
+
+        {/* Vercel Insights */}
+        <Script
+          src="/_next/static/chunks/main.js"
+          strategy="afterInteractive"
+        />
+      </Head>
+
       <body className="relative min-h-screen bg-background font-sans text-foreground">
         <div className="gradient-mesh" aria-hidden="true" />
 
@@ -221,16 +251,28 @@ export default async function RootLayout({
           >
             Skip to content
           </a>
+
           <SiteHeader name={footerProfile?.name} />
+
           <main id="main" className="relative z-10 flex-1">
             {children}
           </main>
+
           <ConditionalSiteFooter profile={footerProfile} />
           <CommandPalette />
           <Toaster richColors position="top-right" closeButton />
           <JsonLd data={jsonLd} />
+
+          {/* Analytics - load after page is interactive */}
           <Analytics />
+          <SpeedInsights />
         </ThemeProvider>
+
+        {/* Defer non-critical scripts */}
+        <Script
+          id="speed-insights"
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );

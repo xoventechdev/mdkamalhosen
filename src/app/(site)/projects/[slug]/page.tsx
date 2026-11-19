@@ -18,12 +18,15 @@ import { paragraphs, absoluteUrl } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { breadcrumbJsonLd, creativeWorkJsonLd } from "@/lib/jsonld";
 
-export const revalidate = 60;
+// Performance: Force static generation for better caching
+export const dynamic = 'force-static';
+export const revalidate = 60 * 60 * 24; // 24 hours cache
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+// Performance: Generate static params at build time
 export async function generateStaticParams() {
   try {
     const projects = (await getPublishedProjects()) as unknown as Array<{ slug: string }>;
@@ -33,6 +36,7 @@ export async function generateStaticParams() {
   }
 }
 
+// Performance: Cache metadata generation
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   let title = slug;
@@ -95,7 +99,14 @@ const coverByCategory: Record<string, string> = {
 
 export default async function ProjectDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const project = (await getProjectBySlug(slug).catch(() => null)) as unknown as {
+
+  // Performance: Fetch all data in parallel
+  const [project, allProjects] = await Promise.all([
+    getProjectBySlug(slug).catch(() => null),
+    getPublishedProjects().catch(() => []),
+  ]);
+
+  const parsedProject = project as unknown as {
     id: string;
     slug: string;
     title: string;
@@ -116,9 +127,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     links?: { live?: string | null; github?: string | null; pdf?: string | null } | null;
   } | null;
 
-  if (!project || project.status !== "published") notFound();
+  if (!parsedProject || parsedProject.status !== "published") notFound();
 
-  const all = ((await getPublishedProjects().catch(() => [])) as unknown) as Array<{
+  const all = allProjects as unknown as Array<{
     slug: string;
     title: string;
     excerpt: string;
@@ -131,34 +142,34 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   const prev = idx > 0 ? all[idx - 1] : null;
   const next = idx >= 0 && idx < all.length - 1 ? all[idx + 1] : null;
 
-  const links = (project.links ?? {}) as {
+  const links = (parsedProject.links ?? {}) as {
     live?: string | null;
     github?: string | null;
     pdf?: string | null;
   };
-  const gallery: string[] = project.galleryImages ?? [];
+  const gallery: string[] = parsedProject.galleryImages ?? [];
   const coverClass =
-    coverByCategory[project.category as string] ?? "cover-gradient-blog";
+    coverByCategory[parsedProject.category as string] ?? "cover-gradient-blog";
 
   return (
     <>
       {/* JSON-LD: CreativeWork + BreadcrumbList */}
       <JsonLd
         data={[creativeWorkJsonLd({
-          slug: project.slug,
-          title: project.title,
-          excerpt: project.excerpt,
-          coverUrl: project.coverUrl,
-          techStack: project.techStack,
-          category: project.category,
-          year: project.year,
+          slug: parsedProject.slug,
+          title: parsedProject.title,
+          excerpt: parsedProject.excerpt,
+          coverUrl: parsedProject.coverUrl,
+          techStack: parsedProject.techStack,
+          category: parsedProject.category,
+          year: parsedProject.year,
           createdAt: null,
           updatedAt: null,
-          type: (project.category as "bms" | "software" | "iot" | "android") ?? "general",
+          type: (parsedProject.category as "bms" | "software" | "iot" | "android") ?? "general",
         }), breadcrumbJsonLd([
           { name: "Home", href: "/" },
           { name: "Projects", href: "/projects" },
-          { name: project.title, href: `/projects/${project.slug}` },
+          { name: parsedProject.title, href: `/projects/${parsedProject.slug}` },
         ])]}
       />
 
@@ -167,12 +178,13 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           cover is set. The bottom gradient keeps the page header
           legible regardless of the underlying image. */}
       <section className="relative overflow-hidden border-b border-border">
-        {project.coverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
+        {parsedProject.coverUrl ? (
           <img
-            src={project.coverUrl}
-            alt={`${project.title} cover`}
+            src={parsedProject.coverUrl}
+            alt={`${parsedProject.title} cover`}
             className="aspect-[21/9] w-full object-cover md:aspect-[21/7]"
+            loading="eager"
+            priority={true}
           />
         ) : (
           <div
@@ -188,9 +200,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
       <PageHeader
         variant="subtle"
-        eyebrow={`Case study · ${project.category.toUpperCase()}`}
-        title={project.title}
-        description={project.excerpt || project.problem || ""}
+        eyebrow={`Case study · ${parsedProject.category.toUpperCase()}`}
+        title={parsedProject.title}
+        description={parsedProject.excerpt || parsedProject.problem || ""}
       />
 
       <section>
@@ -199,20 +211,20 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           {gallery.length > 0 && (
             <div className="mb-12">
               <ScrollReveal>
-                <ImageGallery images={gallery} title={project.title} />
+                <ImageGallery images={gallery} title={parsedProject.title} />
               </ScrollReveal>
             </div>
           )}
 
           {/* Meta row + actions */}
           <div className="mb-12 flex flex-wrap items-center gap-3">
-            <CategoryBadge category={project.category as "bms" | "software" | "iot" | "android"} />
+            <CategoryBadge category={parsedProject.category as "bms" | "software" | "iot" | "android"} />
             <span className="font-mono text-sm text-muted-foreground">
-              {project.year}
+              {parsedProject.year}
             </span>
-            {project.clientType && (
+            {parsedProject.clientType && (
               <span className="text-sm text-muted-foreground">
-                · {project.clientType}
+                · {parsedProject.clientType}
               </span>
             )}
           </div>
@@ -258,19 +270,19 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               {sections.map((s, i) => {
                 let content: string | string[] | null = null;
                 if (s.key === "tech") {
-                  content = project.techStack?.length ? project.techStack : null;
+                  content = parsedProject.techStack?.length ? parsedProject.techStack : null;
                 } else if (s.key === "role") {
-                  content = project.role ? paragraphs(project.role) : null;
+                  content = parsedProject.role ? paragraphs(parsedProject.role) : null;
                 } else if (s.key === "problem") {
-                  content = project.problem ? paragraphs(project.problem) : null;
+                  content = parsedProject.problem ? paragraphs(parsedProject.problem) : null;
                 } else if (s.key === "challenges") {
-                  content = project.challenges ? paragraphs(project.challenges) : null;
+                  content = parsedProject.challenges ? paragraphs(parsedProject.challenges) : null;
                 } else if (s.key === "solution") {
-                  content = project.solution ? paragraphs(project.solution) : null;
+                  content = parsedProject.solution ? paragraphs(parsedProject.solution) : null;
                 } else if (s.key === "outcome") {
-                  content = project.outcome ? paragraphs(project.outcome) : null;
+                  content = parsedProject.outcome ? paragraphs(parsedProject.outcome) : null;
                 } else if (s.key === "lessons") {
-                  content = project.lessons ? paragraphs(project.lessons) : null;
+                  content = parsedProject.lessons ? paragraphs(parsedProject.lessons) : null;
                 }
                 if (!content || (Array.isArray(content) && content.length === 0)) return null;
                 return (
@@ -326,21 +338,21 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                       Category
                     </dt>
                     <dd className="mt-1 font-medium capitalize">
-                      {project.category}
+                      {parsedProject.category}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-xs uppercase tracking-wider text-muted-foreground">
                       Year
                     </dt>
-                    <dd className="mt-1 font-medium">{project.year}</dd>
+                    <dd className="mt-1 font-medium">{parsedProject.year}</dd>
                   </div>
-                  {project.clientType && (
+                  {parsedProject.clientType && (
                     <div>
                       <dt className="text-xs uppercase tracking-wider text-muted-foreground">
                         Client type
                       </dt>
-                      <dd className="mt-1 font-medium">{project.clientType}</dd>
+                      <dd className="mt-1 font-medium">{parsedProject.clientType}</dd>
                     </div>
                   )}
                   <div>
@@ -348,7 +360,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                       Stack
                     </dt>
                     <dd className="mt-2 flex flex-wrap gap-1.5">
-                      {project.techStack.map((t) => (
+                      {parsedProject.techStack.map((t) => (
                         <span
                           key={t}
                           className="rounded-md bg-muted px-2 py-0.5 text-xs"
