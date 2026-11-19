@@ -36,17 +36,10 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
-    // Enable server components in browser
-    serverComponentsInBrowser: false,
   },
 
   // Compression
   compress: true,
-
-  // ===== OUTPUT OPTIMIZATIONS =====
-
-  // Enable React Server Components
-  reactMode: 'concurrent',
 
   // ===== CACHING =====
 

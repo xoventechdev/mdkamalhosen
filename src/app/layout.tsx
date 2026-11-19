@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/site-header";
 import { ConditionalSiteFooter } from "@/components/conditional-site-footer";
@@ -63,7 +62,7 @@ const DEFAULT_TWITTER_HANDLE = SITE_DEFAULTS.twitterHandle;
 
 // Enable static generation for better performance
 export const dynamic = 'force-static';
-export const revalidate = 60 * 60 * 24; // 24 hours
+export const revalidate = 86400; // 24 hours
 
 export async function generateMetadata(): Promise<Metadata> {
   // Use cache to avoid duplicate fetches
@@ -265,14 +264,7 @@ export default async function RootLayout({
 
           {/* Analytics - load after page is interactive */}
           <Analytics />
-          <SpeedInsights />
         </ThemeProvider>
-
-        {/* Defer non-critical scripts */}
-        <Script
-          id="speed-insights"
-          strategy="lazyOnload"
-        />
       </body>
     </html>
   );
